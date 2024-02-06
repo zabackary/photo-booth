@@ -1,4 +1,4 @@
-use camerafeed::{CameraFeed, CameraMessage};
+use camera_feed::{CameraFeed, CameraMessage};
 use iced::widget::{column, container, text};
 use iced::{executor, theme, window, Application, Subscription, Theme};
 use iced::{Alignment, Color, Element, Length, Settings};
@@ -6,7 +6,7 @@ use nokhwa::pixel_format::RgbAFormat;
 use nokhwa::utils::{RequestedFormat, RequestedFormatType};
 use nokhwa::Camera;
 
-mod camerafeed;
+mod camera_feed;
 
 pub fn main() -> iced::Result {
     let icon = image::load_from_memory(include_bytes!("../assets/icon.png"))
@@ -39,15 +39,12 @@ impl Application for PhotoBooth {
     type Theme = Theme;
 
     fn new(_flags: ()) -> (Self, iced::Command<Message>) {
-        // first camera in system
         let index = nokhwa::utils::CameraIndex::Index(0);
-        // request the absolute highest resolution CameraFormat that can be decoded to RGB.
         let requested =
-            RequestedFormat::new::<RgbAFormat>(RequestedFormatType::HighestFrameRate(30));
-        // make the camera
+            RequestedFormat::new::<RgbAFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
         let mut camera = Camera::new(index, requested).unwrap();
         camera.open_stream().unwrap();
-        let (feed, feed_command) = CameraFeed::new(camera);
+        let (feed, feed_command) = CameraFeed::new(camera, 48.into());
         (
             PhotoBooth { feed },
             feed_command.map(Message::CameraFeedMessage),
@@ -55,7 +52,7 @@ impl Application for PhotoBooth {
     }
 
     fn title(&self) -> String {
-        String::from("test")
+        String::from("Photo Booth")
     }
 
     fn update(&mut self, message: Message) -> iced::Command<Message> {
@@ -68,7 +65,6 @@ impl Application for PhotoBooth {
 
     fn subscription(&self) -> Subscription<Message> {
         self.feed.subscription().map(Message::CameraFeedMessage)
-        // Subscription::none()
     }
 
     fn theme(&self) -> Theme {

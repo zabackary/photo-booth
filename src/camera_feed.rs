@@ -1,7 +1,11 @@
+mod border_radius;
+
 use iced::widget::image;
 use iced::{Command, Subscription};
 use nokhwa::pixel_format::RgbAFormat;
 use std::sync::{Arc, Mutex};
+
+use self::border_radius::BorderRadius;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CameraMessage {
@@ -13,14 +17,19 @@ pub enum CameraMessage {
 pub struct CameraFeed {
     camera: Arc<Mutex<nokhwa::Camera>>,
     current_frame: Arc<Mutex<Option<image::Handle>>>,
+    border_radius: BorderRadius,
 }
 
 impl CameraFeed {
-    pub fn new(camera: nokhwa::Camera) -> (Self, Command<CameraMessage>) {
+    pub fn new(
+        camera: nokhwa::Camera,
+        border_radius: BorderRadius,
+    ) -> (Self, Command<CameraMessage>) {
         (
             CameraFeed {
                 camera: Arc::new(Mutex::new(camera)),
                 current_frame: Arc::new(Mutex::new(None)),
+                border_radius: border_radius,
             },
             Command::perform(async {}, |_| CameraMessage::CaptureFrame),
         )
@@ -30,16 +39,18 @@ impl CameraFeed {
         match message {
             CameraMessage::CaptureFrame => {
                 let cloned_camera = self.camera.clone();
+                let border_radius = self.border_radius;
                 Command::perform(
                     async move {
                         tokio::task::spawn_blocking(move || {
-                            let frame = cloned_camera
+                            let mut frame = cloned_camera
                                 .lock()
                                 .unwrap()
                                 .frame()
                                 .unwrap()
                                 .decode_image::<RgbAFormat>()
                                 .unwrap();
+                            border_radius::round(&mut frame, &border_radius);
                             image::Handle::from_pixels(
                                 frame.width(),
                                 frame.height(),
