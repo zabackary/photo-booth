@@ -55,7 +55,7 @@ impl Application for PhotoBooth {
     }
 
     fn title(&self) -> String {
-        String::from("Photo Booth")
+        String::from("test")
     }
 
     fn update(&mut self, message: Message) -> iced::Command<Message> {
