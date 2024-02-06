@@ -1,5 +1,5 @@
 use camerafeed::{CameraFeed, CameraMessage};
-use iced::widget::{column, container, text, Image};
+use iced::widget::{column, container, text};
 use iced::{executor, theme, window, Application, Subscription, Theme};
 use iced::{Alignment, Color, Element, Length, Settings};
 use nokhwa::pixel_format::RgbAFormat;
@@ -43,14 +43,14 @@ impl Application for PhotoBooth {
         let index = nokhwa::utils::CameraIndex::Index(0);
         // request the absolute highest resolution CameraFormat that can be decoded to RGB.
         let requested =
-            RequestedFormat::new::<RgbAFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
+            RequestedFormat::new::<RgbAFormat>(RequestedFormatType::HighestFrameRate(30));
         // make the camera
-        let camera = Camera::new(index, requested).unwrap();
+        let mut camera = Camera::new(index, requested).unwrap();
+        camera.open_stream().unwrap();
+        let (feed, feed_command) = CameraFeed::new(camera);
         (
-            PhotoBooth {
-                feed: CameraFeed::new(camera),
-            },
-            iced::Command::none(),
+            PhotoBooth { feed },
+            feed_command.map(Message::CameraFeedMessage),
         )
     }
 
@@ -92,10 +92,7 @@ impl Application for PhotoBooth {
         .spacing(20)
         .align_items(Alignment::Center)
         .push(container(
-            self.feed
-                .frame_view()
-                .width(Length::Fill)
-                .height(Length::Fill),
+            self.feed.view().width(Length::Fill).height(Length::Fill),
         ));
 
         container(content)
