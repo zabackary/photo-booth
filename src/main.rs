@@ -1,25 +1,36 @@
+mod camera_feed;
+mod config;
+
 use camera_feed::{CameraFeed, CameraMessage};
-use iced::widget::{column, container, text};
-use iced::{executor, theme, window, Application, Subscription, Theme};
+use config::Config;
+use iced::widget::{button, column, container, row, text};
+use iced::window::Mode;
+use iced::{alignment, executor, theme, window, Application, Font, Subscription, Theme};
 use iced::{Alignment, Color, Element, Length, Settings};
 use nokhwa::pixel_format::RgbAFormat;
 use nokhwa::utils::{RequestedFormat, RequestedFormatType};
 use nokhwa::Camera;
 
-mod camera_feed;
-
 pub fn main() -> iced::Result {
     let icon = image::load_from_memory(include_bytes!("../assets/icon.png"))
         .expect("failed to decode application icon");
+    let config =
+        config::Config::new(include_str!("../assets/config.json")).expect("failed to read config");
     PhotoBooth::run(Settings {
         window: window::Settings {
             icon: Some(
                 window::icon::from_rgba(icon.to_rgba8().to_vec(), icon.width(), icon.height())
                     .expect("failed to construct application icon"),
             ),
+            decorations: !config.fullscreen,
             ..window::Settings::default()
         },
-        ..Settings::default()
+        flags: config,
+        antialiasing: false,
+        exit_on_close_request: true,
+        default_font: Font::DEFAULT,
+        id: None,
+        default_text_size: 16.0,
     })
 }
 
@@ -30,15 +41,16 @@ struct PhotoBooth {
 #[derive(Debug, Clone)]
 enum Message {
     CameraFeedMessage(CameraMessage),
+    ExitPressed,
 }
 
 impl Application for PhotoBooth {
     type Message = Message;
     type Executor = executor::Default;
-    type Flags = ();
+    type Flags = Config;
     type Theme = Theme;
 
-    fn new(_flags: ()) -> (Self, iced::Command<Message>) {
+    fn new(flags: Config) -> (Self, iced::Command<Message>) {
         let index = nokhwa::utils::CameraIndex::Index(0);
         let requested =
             RequestedFormat::new::<RgbAFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
@@ -47,7 +59,14 @@ impl Application for PhotoBooth {
         let (feed, feed_command) = CameraFeed::new(camera, 48.into());
         (
             PhotoBooth { feed },
-            feed_command.map(Message::CameraFeedMessage),
+            iced::Command::batch([
+                feed_command.map(Message::CameraFeedMessage),
+                if flags.fullscreen {
+                    window::change_mode(Mode::Fullscreen)
+                } else {
+                    iced::Command::none()
+                },
+            ]),
         )
     }
 
@@ -60,6 +79,7 @@ impl Application for PhotoBooth {
             Message::CameraFeedMessage(msg) => {
                 self.feed.update(msg).map(Message::CameraFeedMessage)
             }
+            Message::ExitPressed => window::close(),
         }
     }
 
@@ -81,15 +101,22 @@ impl Application for PhotoBooth {
     }
 
     fn view(&self) -> Element<Message> {
-        let content = column![text("Photo Booth")
-            .size(24)
-            .style(Color::from([0.5, 0.5, 0.5])),]
-        .width(700)
+        let content = column![
+            row![
+                text("Photo Booth")
+                    .size(24)
+                    .style(Color::from([0.8, 0.8, 0.8]))
+                    .width(Length::Fill),
+                text(format!("v{}", env!("CARGO_PKG_VERSION")))
+                    .size(18)
+                    .style(Color::from([0.3, 0.3, 0.3]))
+                    .vertical_alignment(alignment::Vertical::Center),
+                button(text("Exit")).on_press(Message::ExitPressed)
+            ],
+            self.feed.view().width(Length::Fill).height(Length::Fill)
+        ]
         .spacing(20)
-        .align_items(Alignment::Center)
-        .push(container(
-            self.feed.view().width(Length::Fill).height(Length::Fill),
-        ));
+        .align_items(Alignment::Center);
 
         container(content)
             .width(Length::Fill)
