@@ -1,8 +1,7 @@
 use crate::camera_feed::{CameraFeed, CameraMessage};
 use iced::{
-    alignment,
-    widget::{button, column, container, row, text},
-    window, Alignment, Color, Element, Length,
+    widget::{container, row},
+    Alignment, Element, Length,
 };
 use nokhwa::{
     pixel_format::RgbAFormat,
@@ -24,7 +23,6 @@ impl std::fmt::Debug for App {
 #[derive(Debug, Clone)]
 pub enum AppMessage {
     CameraFeedMessage(CameraMessage),
-    ExitPressed,
 }
 
 impl Into<super::ScreenMessage> for AppMessage {
@@ -33,7 +31,7 @@ impl Into<super::ScreenMessage> for AppMessage {
     }
 }
 
-impl<'a> super::Screenish for App {
+impl super::Screenish for App {
     type Message = AppMessage;
     fn new() -> (Self, Option<AppMessage>) {
         let index = nokhwa::utils::CameraIndex::Index(0);
@@ -52,7 +50,6 @@ impl<'a> super::Screenish for App {
             AppMessage::CameraFeedMessage(msg) => {
                 self.feed.update(msg).map(AppMessage::CameraFeedMessage)
             }
-            AppMessage::ExitPressed => window::close(),
         }
     }
     fn view(&self) -> Element<AppMessage> {
@@ -67,6 +64,9 @@ impl<'a> super::Screenish for App {
             .center_x()
             .center_y()
             .into()
+    }
+    fn subscription(self) -> iced::Subscription<AppMessage> {
+        self.feed.subscription().map(AppMessage::CameraFeedMessage)
     }
 }
 

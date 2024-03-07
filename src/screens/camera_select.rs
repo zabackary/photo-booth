@@ -11,7 +11,7 @@ use nokhwa::utils::CameraInfo;
 use super::transition_to_screen;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Hash)]
-struct CameraWrapper(CameraInfo);
+pub struct CameraWrapper(CameraInfo);
 
 impl Display for CameraWrapper {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

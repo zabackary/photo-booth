@@ -2,15 +2,15 @@ mod camera_feed;
 mod config;
 mod screens;
 
-use camera_feed::{CameraFeed, CameraMessage};
+
 use config::Config;
 use iced::widget::{button, column, container, row, text};
 use iced::window::Mode;
 use iced::{alignment, executor, theme, window, Application, Font, Subscription, Theme};
 use iced::{Alignment, Color, Element, Length, Settings};
-use nokhwa::pixel_format::RgbAFormat;
-use nokhwa::utils::{RequestedFormat, RequestedFormatType};
-use nokhwa::Camera;
+
+
+
 
 pub fn main() -> iced::Result {
     let icon = image::load_from_memory(include_bytes!("../assets/icon.png"))
