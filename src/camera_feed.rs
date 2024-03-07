@@ -14,6 +14,7 @@ pub enum CameraMessage {
 }
 
 /// Camera feed.
+#[derive(Clone)]
 pub struct CameraFeed {
     camera: Arc<Mutex<nokhwa::Camera>>,
     current_frame: Arc<Mutex<Option<image::Handle>>>,
@@ -24,14 +25,14 @@ impl CameraFeed {
     pub fn new(
         camera: nokhwa::Camera,
         border_radius: BorderRadius,
-    ) -> (Self, Command<CameraMessage>) {
+    ) -> (Self, Option<CameraMessage>) {
         (
             CameraFeed {
                 camera: Arc::new(Mutex::new(camera)),
                 current_frame: Arc::new(Mutex::new(None)),
                 border_radius: border_radius,
             },
-            Command::perform(async {}, |_| CameraMessage::CaptureFrame),
+            Some(CameraMessage::CaptureFrame),
         )
     }
 

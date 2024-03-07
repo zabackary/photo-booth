@@ -1,5 +1,6 @@
 mod camera_feed;
 mod config;
+mod screens;
 
 use camera_feed::{CameraFeed, CameraMessage};
 use config::Config;
@@ -35,12 +36,12 @@ pub fn main() -> iced::Result {
 }
 
 struct PhotoBooth {
-    feed: CameraFeed,
+    screen: screens::Screen,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
-    CameraFeedMessage(CameraMessage),
+    ScreenMessage(screens::ScreenMessage),
     ExitPressed,
 }
 
@@ -51,16 +52,15 @@ impl Application for PhotoBooth {
     type Theme = Theme;
 
     fn new(flags: Config) -> (Self, iced::Command<Message>) {
-        let index = nokhwa::utils::CameraIndex::Index(0);
-        let requested =
-            RequestedFormat::new::<RgbAFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
-        let mut camera = Camera::new(index, requested).unwrap();
-        camera.open_stream().unwrap();
-        let (feed, feed_command) = CameraFeed::new(camera, 48.into());
+        let (screen, command) = screens::initial_screen();
+        let command = match command {
+            Some(inner) => iced::Command::perform(async {}, |_| inner),
+            None => iced::Command::none(),
+        };
         (
-            PhotoBooth { feed },
+            PhotoBooth { screen },
             iced::Command::batch([
-                feed_command.map(Message::CameraFeedMessage),
+                command.map(Message::ScreenMessage),
                 if flags.fullscreen {
                     window::change_mode(Mode::Fullscreen)
                 } else {
@@ -76,15 +76,19 @@ impl Application for PhotoBooth {
 
     fn update(&mut self, message: Message) -> iced::Command<Message> {
         match message {
-            Message::CameraFeedMessage(msg) => {
-                self.feed.update(msg).map(Message::CameraFeedMessage)
-            }
+            Message::ScreenMessage(msg) => match self.screen.update(msg) {
+                screens::ScreenUpdateOutcome::Command(cmd) => cmd.map(Message::ScreenMessage),
+                screens::ScreenUpdateOutcome::NewScreen(screen, cmd) => {
+                    self.screen = screen;
+                    cmd.map(Message::ScreenMessage)
+                }
+            },
             Message::ExitPressed => window::close(),
         }
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        self.feed.subscription().map(Message::CameraFeedMessage)
+        self.screen.subscription().map(Message::ScreenMessage)
     }
 
     fn theme(&self) -> Theme {
@@ -113,7 +117,7 @@ impl Application for PhotoBooth {
                     .vertical_alignment(alignment::Vertical::Center),
                 button(text("Exit")).on_press(Message::ExitPressed)
             ],
-            self.feed.view().width(Length::Fill).height(Length::Fill)
+            self.screen.view().map(Message::ScreenMessage)
         ]
         .spacing(20)
         .align_items(Alignment::Center);
