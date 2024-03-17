@@ -10,30 +10,30 @@ use nokhwa::{
 };
 
 #[derive(Clone)]
-pub(crate) struct App {
+pub(crate) struct CameraScreen {
     feed: CameraFeed,
 }
 
-impl std::fmt::Debug for App {
+impl std::fmt::Debug for CameraScreen {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("App").finish()
     }
 }
 
 #[derive(Debug, Clone)]
-pub enum AppMessage {
+pub enum CameraScreenMessage {
     CameraFeedMessage(CameraMessage),
 }
 
-impl Into<super::ScreenMessage> for AppMessage {
+impl Into<super::ScreenMessage> for CameraScreenMessage {
     fn into(self) -> super::ScreenMessage {
-        super::ScreenMessage::AppMessage(self)
+        super::ScreenMessage::CameraScreenMessage(self)
     }
 }
 
-impl super::Screenish for App {
-    type Message = AppMessage;
-    fn new() -> (Self, Option<AppMessage>) {
+impl super::Screenish for CameraScreen {
+    type Message = CameraScreenMessage;
+    fn new() -> (Self, Option<CameraScreenMessage>) {
         let index = nokhwa::utils::CameraIndex::Index(0);
         let requested =
             RequestedFormat::new::<RgbAFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
@@ -41,18 +41,19 @@ impl super::Screenish for App {
         camera.open_stream().unwrap();
         let (feed, feed_command) = CameraFeed::new(camera, 48.into());
         (
-            App { feed },
-            feed_command.map(AppMessage::CameraFeedMessage),
+            CameraScreen { feed },
+            feed_command.map(CameraScreenMessage::CameraFeedMessage),
         )
     }
-    fn update(&mut self, message: AppMessage) -> iced::Command<AppMessage> {
+    fn update(&mut self, message: CameraScreenMessage) -> iced::Command<CameraScreenMessage> {
         match message {
-            AppMessage::CameraFeedMessage(msg) => {
-                self.feed.update(msg).map(AppMessage::CameraFeedMessage)
-            }
+            CameraScreenMessage::CameraFeedMessage(msg) => self
+                .feed
+                .update(msg)
+                .map(CameraScreenMessage::CameraFeedMessage),
         }
     }
-    fn view(&self) -> Element<AppMessage> {
+    fn view(&self) -> Element<CameraScreenMessage> {
         let content = row![self.feed.view().width(Length::Fill).height(Length::Fill)]
             .spacing(20)
             .align_items(Alignment::Center);
@@ -65,13 +66,15 @@ impl super::Screenish for App {
             .center_y()
             .into()
     }
-    fn subscription(self) -> iced::Subscription<AppMessage> {
-        self.feed.subscription().map(AppMessage::CameraFeedMessage)
+    fn subscription(self) -> iced::Subscription<CameraScreenMessage> {
+        self.feed
+            .subscription()
+            .map(CameraScreenMessage::CameraFeedMessage)
     }
 }
 
-impl Into<super::Screen> for App {
+impl Into<super::Screen> for CameraScreen {
     fn into(self) -> super::Screen {
-        super::Screen::App(self)
+        super::Screen::CameraScreen(self)
     }
 }

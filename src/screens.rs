@@ -1,18 +1,18 @@
 use iced::{Element, Subscription};
 
-mod app;
-mod camera_select;
+mod camera_screen;
+mod config_screen;
 
 #[derive(Debug, Clone)]
 pub enum ScreenMessage {
     TransitionToScreen(Screen, Box<Option<ScreenMessage>>),
-    AppMessage(app::AppMessage),
-    CameraSelectMessage(camera_select::CameraSelectMessage),
+    CameraScreenMessage(camera_screen::CameraScreenMessage),
+    ConfigScreenMessage(config_screen::ConfigScreenMessage),
 }
 
 pub fn initial_screen() -> (Screen, Option<ScreenMessage>) {
-    let (screen, command) = camera_select::CameraSelect::new();
-    (Screen::CameraSelect(screen), command.map(|x| x.into()))
+    let (screen, command) = config_screen::ConfigScreen::new();
+    (Screen::ConfigScreen(screen), command.map(|x| x.into()))
 }
 
 fn transition_to_screen(
@@ -26,8 +26,8 @@ fn transition_to_screen(
 
 #[derive(Clone, Debug)]
 pub enum Screen {
-    App(app::App),
-    CameraSelect(camera_select::CameraSelect),
+    CameraScreen(camera_screen::CameraScreen),
+    ConfigScreen(config_screen::ConfigScreen),
 }
 
 #[derive(Debug)]
@@ -48,10 +48,10 @@ impl Screen {
                     },
                 )
             }
-            (Screen::App(screen), ScreenMessage::AppMessage(msg)) => {
+            (Screen::CameraScreen(screen), ScreenMessage::CameraScreenMessage(msg)) => {
                 ScreenUpdateOutcome::Command(screen.update(msg).map(|x| x.into()))
             }
-            (Screen::CameraSelect(screen), ScreenMessage::CameraSelectMessage(msg)) => {
+            (Screen::ConfigScreen(screen), ScreenMessage::ConfigScreenMessage(msg)) => {
                 ScreenUpdateOutcome::Command(screen.update(msg).map(|x| x.into()))
             }
             _ => {
@@ -63,15 +63,15 @@ impl Screen {
 
     pub fn subscription<'a, 'b>(&self) -> Subscription<ScreenMessage> {
         match self {
-            Screen::App(screen) => screen.clone().subscription().map(|x| x.into()),
-            Screen::CameraSelect(screen) => screen.clone().subscription().map(|x| x.into()),
+            Screen::CameraScreen(screen) => screen.clone().subscription().map(|x| x.into()),
+            Screen::ConfigScreen(screen) => screen.clone().subscription().map(|x| x.into()),
         }
     }
 
     pub fn view(&self) -> Element<ScreenMessage> {
         match self {
-            Screen::App(screen) => screen.view().map(|x| x.into()),
-            Screen::CameraSelect(screen) => screen.view().map(|x| x.into()),
+            Screen::CameraScreen(screen) => screen.view().map(|x| x.into()),
+            Screen::ConfigScreen(screen) => screen.view().map(|x| x.into()),
         }
     }
 }

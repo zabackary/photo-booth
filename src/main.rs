@@ -2,15 +2,11 @@ mod camera_feed;
 mod config;
 mod screens;
 
-
 use config::Config;
-use iced::widget::{button, column, container, row, text};
+use iced::widget::{button, container, text, Column, Row, Space};
 use iced::window::Mode;
 use iced::{alignment, executor, theme, window, Application, Font, Subscription, Theme};
 use iced::{Alignment, Color, Element, Length, Settings};
-
-
-
 
 pub fn main() -> iced::Result {
     let icon = image::load_from_memory(include_bytes!("../assets/icon.png"))
@@ -28,10 +24,10 @@ pub fn main() -> iced::Result {
         },
         flags: config,
         antialiasing: false,
-        exit_on_close_request: true,
         default_font: Font::DEFAULT,
+        fonts: vec![],
         id: None,
-        default_text_size: 16.0,
+        default_text_size: iced::Pixels(16.0),
     })
 }
 
@@ -62,7 +58,7 @@ impl Application for PhotoBooth {
             iced::Command::batch([
                 command.map(Message::ScreenMessage),
                 if flags.fullscreen {
-                    window::change_mode(Mode::Fullscreen)
+                    window::change_mode(window::Id::MAIN, Mode::Fullscreen)
                 } else {
                     iced::Command::none()
                 },
@@ -83,7 +79,7 @@ impl Application for PhotoBooth {
                     cmd.map(Message::ScreenMessage)
                 }
             },
-            Message::ExitPressed => window::close(),
+            Message::ExitPressed => window::close(window::Id::MAIN),
         }
     }
 
@@ -92,35 +88,31 @@ impl Application for PhotoBooth {
     }
 
     fn theme(&self) -> Theme {
-        Theme::Custom(
-            theme::Custom::new(theme::Palette {
-                background: Color::from_rgb8(22, 33, 106),
-                text: Color::from_rgb8(111, 125, 224),
-                primary: Color::from_rgb8(0, 0, 255),
-                success: Color::from_rgb8(136, 240, 122),
-                danger: Color::from_rgb8(224, 111, 111),
-            })
-            .into(),
-        )
+        theme::Theme::TokyoNight
     }
 
     fn view(&self) -> Element<Message> {
-        let content = column![
-            row![
-                text("Photo Booth")
-                    .size(24)
-                    .style(Color::from([0.8, 0.8, 0.8]))
-                    .width(Length::Fill),
-                text(format!("v{}", env!("CARGO_PKG_VERSION")))
-                    .size(18)
-                    .style(Color::from([0.3, 0.3, 0.3]))
-                    .vertical_alignment(alignment::Vertical::Center),
-                button(text("Exit")).on_press(Message::ExitPressed)
-            ],
-            self.screen.view().map(Message::ScreenMessage)
-        ]
-        .spacing(20)
-        .align_items(Alignment::Center);
+        let content = Column::new()
+            .push(
+                Row::new()
+                    .push(
+                        text("Photo Booth")
+                            .size(24)
+                            .style(Color::from([0.8, 0.8, 0.8]))
+                            .width(Length::Fill),
+                    )
+                    .push(container(
+                        text(format!("v{}", env!("CARGO_PKG_VERSION")))
+                            .size(18)
+                            .style(Color::from([0.3, 0.3, 0.3]))
+                            .vertical_alignment(alignment::Vertical::Center),
+                    ))
+                    .push(Space::with_width(12))
+                    .push(button(text("Exit")).on_press(Message::ExitPressed)),
+            )
+            .push(self.screen.view().map(Message::ScreenMessage))
+            .spacing(20)
+            .align_items(Alignment::Center);
 
         container(content)
             .width(Length::Fill)
