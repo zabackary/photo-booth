@@ -2,16 +2,18 @@ use iced::{Element, Subscription};
 
 mod camera_screen;
 mod config_screen;
+mod printing_screen;
 
 #[derive(Debug, Clone)]
 pub enum ScreenMessage {
     TransitionToScreen(Screen, Box<Option<ScreenMessage>>),
     CameraScreenMessage(camera_screen::CameraScreenMessage),
     ConfigScreenMessage(config_screen::ConfigScreenMessage),
+    PrintingScreenMessage(printing_screen::PrintingScreenMessage),
 }
 
 pub fn initial_screen() -> (Screen, Option<ScreenMessage>) {
-    let (screen, command) = config_screen::ConfigScreen::new();
+    let (screen, command) = config_screen::ConfigScreen::new(());
     (Screen::ConfigScreen(screen), command.map(|x| x.into()))
 }
 
@@ -28,6 +30,7 @@ fn transition_to_screen(
 pub enum Screen {
     CameraScreen(camera_screen::CameraScreen),
     ConfigScreen(config_screen::ConfigScreen),
+    PrintingScreen(printing_screen::PrintingScreen),
 }
 
 #[derive(Debug)]
@@ -54,6 +57,9 @@ impl Screen {
             (Screen::ConfigScreen(screen), ScreenMessage::ConfigScreenMessage(msg)) => {
                 ScreenUpdateOutcome::Command(screen.update(msg).map(|x| x.into()))
             }
+            (Screen::PrintingScreen(screen), ScreenMessage::PrintingScreenMessage(msg)) => {
+                ScreenUpdateOutcome::Command(screen.update(msg).map(|x| x.into()))
+            }
             _ => {
                 // don't do anything
                 ScreenUpdateOutcome::Command(iced::Command::none())
@@ -65,6 +71,7 @@ impl Screen {
         match self {
             Screen::CameraScreen(screen) => screen.clone().subscription().map(|x| x.into()),
             Screen::ConfigScreen(screen) => screen.clone().subscription().map(|x| x.into()),
+            Screen::PrintingScreen(screen) => screen.clone().subscription().map(|x| x.into()),
         }
     }
 
@@ -72,6 +79,7 @@ impl Screen {
         match self {
             Screen::CameraScreen(screen) => screen.view().map(|x| x.into()),
             Screen::ConfigScreen(screen) => screen.view().map(|x| x.into()),
+            Screen::PrintingScreen(screen) => screen.view().map(|x| x.into()),
         }
     }
 }
@@ -80,7 +88,8 @@ impl Screen {
 /// code.
 trait Screenish: Sized {
     type Message;
-    fn new() -> (Self, Option<impl Into<ScreenMessage>>);
+    type Flags;
+    fn new(flags: Self::Flags) -> (Self, Option<impl Into<ScreenMessage>>);
     fn update(
         &mut self,
         message: Self::Message,

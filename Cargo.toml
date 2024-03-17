@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-iced = { version = "0.12.1", features = ["image", "tokio"] }
+iced = { version = "0.12.1", features = ["image", "tokio", "debug"] }
 iced_aw = { version = "0.8.0", features = ["drop_down"] }
 image = "0.24.8"
 nokhwa = { git = "https://github.com/zabackary/nokhwa.git", branch = "0.10", features = [

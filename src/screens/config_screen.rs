@@ -47,7 +47,8 @@ impl Into<super::ScreenMessage> for ConfigScreenMessage {
 
 impl super::Screenish for ConfigScreen {
     type Message = ConfigScreenMessage;
-    fn new() -> (Self, Option<ConfigScreenMessage>) {
+    type Flags = ();
+    fn new(_flags: ()) -> (Self, Option<ConfigScreenMessage>) {
         let cameras = nokhwa::query(nokhwa::utils::ApiBackend::Auto)
             .unwrap()
             .into_iter()
@@ -81,14 +82,27 @@ impl super::Screenish for ConfigScreen {
                     .unwrap_or_default();
                 Command::none()
             }
-            ConfigScreenMessage::Next => Command::perform(async {}, |_| {
-                transition_to_screen(super::camera_screen::CameraScreen::new())
-            }),
+            ConfigScreenMessage::Next => {
+                let flags = super::camera_screen::CameraScreenFlags {
+                    index: self
+                        .selected_camera
+                        .as_ref()
+                        .expect("selected camera is None")
+                        .0
+                        .index()
+                        .clone(),
+                };
+                Command::perform(async {}, |_| {
+                    transition_to_screen(super::camera_screen::CameraScreen::new(flags))
+                })
+            }
         }
     }
     fn view(&self) -> Element<ConfigScreenMessage> {
         container(
             Column::new()
+                .push(text("Configure the photo booth").size(24))
+                .push(Space::with_height(16))
                 .push(text("Camera").size(18))
                 .push(
                     combo_box(
@@ -121,7 +135,11 @@ impl super::Screenish for ConfigScreen {
                             .size(18)
                             .horizontal_alignment(alignment::Horizontal::Center),
                     )
-                    .on_press(ConfigScreenMessage::Next)
+                    .on_press_maybe(
+                        self.selected_camera
+                            .as_ref()
+                            .and(Some(ConfigScreenMessage::Next)),
+                    )
                     .padding(6),
                 ),
         )
