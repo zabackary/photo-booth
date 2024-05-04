@@ -1,8 +1,10 @@
 mod border_radius;
 
+use ::image::{ImageBuffer, Rgba};
 use iced::widget::image;
 use iced::{Command, Subscription};
 use nokhwa::pixel_format::RgbAFormat;
+use nokhwa::Camera;
 use std::sync::{Arc, Mutex};
 
 use self::border_radius::BorderRadius;
@@ -21,6 +23,16 @@ pub struct CameraFeed {
     border_radius: BorderRadius,
 }
 
+fn frame_and_decode(camera: &mut Camera) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
+    // TODO: it might be more performant to pre-allocate the buffer and use
+    //       write_frame_to_buffer instead
+    camera
+        .frame()
+        .expect("failed to capture a camera frame")
+        .decode_image::<RgbAFormat>()
+        .expect("failed to decode the camera frame")
+}
+
 impl CameraFeed {
     pub fn new(
         camera: nokhwa::Camera,
@@ -36,6 +48,11 @@ impl CameraFeed {
         )
     }
 
+    /// Take an image outside of the normal video capture cycle
+    pub fn frame(&mut self) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
+        frame_and_decode(&mut self.camera.lock().expect("failed to lock camera mutex"))
+    }
+
     pub fn update(&mut self, message: CameraMessage) -> Command<CameraMessage> {
         match message {
             CameraMessage::CaptureFrame => {
@@ -44,13 +61,9 @@ impl CameraFeed {
                 Command::perform(
                     async move {
                         tokio::task::spawn_blocking(move || {
-                            let mut frame = cloned_camera
-                                .lock()
-                                .unwrap()
-                                .frame()
-                                .unwrap()
-                                .decode_image::<RgbAFormat>()
-                                .unwrap();
+                            let mut frame = frame_and_decode(
+                                &mut cloned_camera.lock().expect("failed to lock camera mutex"),
+                            );
                             border_radius::round(&mut frame, &border_radius);
                             image::Handle::from_pixels(
                                 frame.width(),

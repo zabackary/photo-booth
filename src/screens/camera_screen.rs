@@ -6,7 +6,7 @@ use crate::{
 };
 use anim::{Animation, Timeline};
 use iced::{
-    widget::{button, container, space, text, Container, Row},
+    widget::{container, space, text, Row},
     Alignment, Color, Element, Length,
 };
 use iced_aw::floating_element;
@@ -91,16 +91,20 @@ fn frame_size_animation() -> impl Animation<Item = f32> {
     ])
 }
 
+enum CaptureSequenceState {
+    None,
+    Counter(u16),
+    Snap,
+    FrameSize,
+}
+
 pub(crate) struct CameraScreen {
     feed: CameraFeed,
     captured_frames: Vec<image::ImageBuffer<Rgba<u8>, Vec<u8>>>,
 
-    counter_animation_value: u16,
-    counter_animation_running: bool,
+    capture_sequence_state: CaptureSequenceState,
     counter_timeline: Timeline<CounterAnimationState>,
-
     snap_timeline: Timeline<f32>,
-
     frame_size_timeline: Timeline<f32>,
 }
 
@@ -119,9 +123,7 @@ impl std::fmt::Debug for CameraScreen {
 pub enum CameraScreenMessage {
     CameraFeedMessage(CameraMessage),
     CaptureButtonPressed,
-    StartCaptureFrameAnimation,
-    CaptureFrameAnimationEnded,
-    AllFramesCaptured,
+    ImageCaptured(image::ImageBuffer<Rgba<u8>, Vec<u8>>),
     Tick,
 }
 
@@ -143,8 +145,7 @@ impl super::Screenish for CameraScreen {
         (
             CameraScreen {
                 feed,
-                counter_animation_value: 0,
-                counter_animation_running: false,
+                capture_sequence_state: CaptureSequenceState::None,
                 captured_frames: vec![],
                 counter_timeline: counter_animation().to_timeline(),
                 frame_size_timeline: frame_size_animation().to_timeline(),
@@ -160,48 +161,75 @@ impl super::Screenish for CameraScreen {
                 .update(msg)
                 .map(CameraScreenMessage::CameraFeedMessage)
                 .map(super::ScreenMessage::CameraScreenMessage),
-            CameraScreenMessage::StartCaptureFrameAnimation => {
-                self.counter_animation_running = true;
+            CameraScreenMessage::Tick => {
+                match self.capture_sequence_state {
+                    CaptureSequenceState::None => {}
+                    CaptureSequenceState::Counter(value) => {
+                        self.counter_timeline.update();
+                        if self.counter_timeline.status().is_completed() {
+                            if value > 1 {
+                                self.capture_sequence_state =
+                                    CaptureSequenceState::Counter(value - 1);
+                                self.counter_timeline.begin();
+                            } else {
+                                // start the snap animation
+                                self.capture_sequence_state = CaptureSequenceState::Snap;
+                                self.snap_timeline.begin();
+
+                                // capture the frame
+                                // everything important inside feed is Mutex'd
+                                // so perf is fine
+                                let mut feed = self.feed.clone();
+                                return iced::Command::perform(
+                                    async move {
+                                        tokio::task::spawn_blocking(move || feed.frame())
+                                            .await
+                                            .unwrap()
+                                    },
+                                    CameraScreenMessage::ImageCaptured,
+                                )
+                                .map(super::ScreenMessage::CameraScreenMessage);
+                            }
+                        }
+                    }
+                    CaptureSequenceState::Snap => {
+                        self.snap_timeline.update();
+                        if self.snap_timeline.status().is_completed() {
+                            // start the frame size animation
+                            self.capture_sequence_state = CaptureSequenceState::FrameSize;
+                            self.frame_size_timeline.begin();
+                        }
+                    }
+                    CaptureSequenceState::FrameSize => {
+                        self.frame_size_timeline.update();
+                        if self.frame_size_timeline.status().is_completed() {
+                            // finish the sequence
+                            self.capture_sequence_state = CaptureSequenceState::None;
+
+                            // TODO: transition to the next screen if we're done
+                            if false {
+                                return iced::Command::perform(async {}, |_| {
+                                    super::ScreenMessage::TransitionToScreen(
+                                        super::ScreenFlags::PrintingScreenFlags(
+                                            super::printing_screen::PrintingScreenFlags {},
+                                        ),
+                                    )
+                                });
+                            }
+                        }
+                    }
+                }
+                iced::Command::none()
+            }
+            CameraScreenMessage::ImageCaptured(image) => {
+                self.captured_frames.push(image);
+                iced::Command::none()
+            }
+            CameraScreenMessage::CaptureButtonPressed => {
+                self.capture_sequence_state = CaptureSequenceState::Counter(3);
                 self.counter_timeline.begin();
                 iced::Command::none()
             }
-            CameraScreenMessage::Tick => {
-                self.counter_timeline.update();
-                if self.counter_animation_running && self.counter_timeline.status().is_completed() {
-                    self.counter_animation_running = false;
-                    iced::Command::perform(async {}, |_| {
-                        CameraScreenMessage::CaptureFrameAnimationEnded
-                    })
-                    .map(super::ScreenMessage::CameraScreenMessage)
-                } else {
-                    iced::Command::none()
-                }
-            }
-            CameraScreenMessage::CaptureFrameAnimationEnded => {
-                self.counter_animation_value -= 1;
-                if self.counter_animation_value == 0 {
-                    self.snap_timeline.begin();
-                    // TODO: capture frame
-                    iced::Command::none()
-                } else {
-                    iced::Command::perform(async {}, |_| {
-                        CameraScreenMessage::StartCaptureFrameAnimation
-                    })
-                    .map(super::ScreenMessage::CameraScreenMessage)
-                }
-            }
-            CameraScreenMessage::CaptureButtonPressed => {
-                self.counter_animation_value = 3;
-                iced::Command::perform(async {}, |_| {
-                    CameraScreenMessage::StartCaptureFrameAnimation
-                })
-                .map(super::ScreenMessage::CameraScreenMessage)
-            }
-            CameraScreenMessage::AllFramesCaptured => iced::Command::perform(async {}, |_| {
-                super::ScreenMessage::TransitionToScreen(super::ScreenFlags::PrintingScreenFlags(
-                    super::printing_screen::PrintingScreenFlags {},
-                ))
-            }),
         }
     }
     fn view(&self) -> Element<CameraScreenMessage> {
@@ -213,8 +241,8 @@ impl super::Screenish for CameraScreen {
                     .push(
                         floating_element(
                             self.feed.view().width(Length::Fill).height(Length::Fill),
-                            if self.counter_animation_running {
-                                container(
+                            match self.capture_sequence_state {
+                                CaptureSequenceState::Counter(counter) => container(
                                     floating_element(
                                         container(circle(
                                             counter_animation_value.radius,
@@ -229,15 +257,13 @@ impl super::Screenish for CameraScreen {
                                         .height(COUNTER_RADIUS * 2.0)
                                         .align_x(iced::alignment::Horizontal::Center)
                                         .align_y(iced::alignment::Vertical::Center),
-                                        container(
-                                            text(format!("{}", self.counter_animation_value)).size(
-                                                if counter_animation_value.text_size > 0.0 {
-                                                    counter_animation_value.text_size
-                                                } else {
-                                                    f32::MIN_POSITIVE
-                                                },
-                                            ),
-                                        )
+                                        container(text(format!("{}", counter)).size(
+                                            if counter_animation_value.text_size > 0.0 {
+                                                counter_animation_value.text_size
+                                            } else {
+                                                f32::MIN_POSITIVE
+                                            },
+                                        ))
                                         .width(Length::Fill)
                                         .height(Length::Fill)
                                         .align_x(iced::alignment::Horizontal::Center)
@@ -245,9 +271,8 @@ impl super::Screenish for CameraScreen {
                                         .clip(true),
                                     )
                                     .offset(0.0),
-                                )
-                            } else {
-                                container(space::Space::new(0, 0))
+                                ),
+                                _ => container(space::Space::new(0, 0)),
                             }
                             .width(Length::Fill)
                             .height(Length::Fill)
@@ -263,7 +288,7 @@ impl super::Screenish for CameraScreen {
             .width(Length::Fill)
             .height(Length::Fill)
             .padding(20),
-            if self.snap_timeline.status().is_animating() && snap_animation_value > 0.0 {
+            if matches!(self.capture_sequence_state, CaptureSequenceState::Snap) {
                 container(space::Space::new(0, 0))
                     .width(Length::Fill)
                     .height(Length::Fill)
