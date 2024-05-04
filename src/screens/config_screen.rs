@@ -7,8 +7,6 @@ use iced::{
 };
 use nokhwa::utils::CameraInfo;
 
-use super::transition_to_screen;
-
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Hash)]
 pub struct CameraWrapper(CameraInfo);
 
@@ -39,6 +37,9 @@ pub enum ConfigScreenMessage {
     Next,
 }
 
+#[derive(Debug, Clone)]
+pub(crate) struct ConfigScreenFlags {}
+
 impl Into<super::ScreenMessage> for ConfigScreenMessage {
     fn into(self) -> super::ScreenMessage {
         super::ScreenMessage::ConfigScreenMessage(self)
@@ -47,8 +48,8 @@ impl Into<super::ScreenMessage> for ConfigScreenMessage {
 
 impl super::Screenish for ConfigScreen {
     type Message = ConfigScreenMessage;
-    type Flags = ();
-    fn new(_flags: ()) -> (Self, Option<ConfigScreenMessage>) {
+    type Flags = ConfigScreenFlags;
+    fn new(_flags: ConfigScreenFlags) -> (Self, Option<ConfigScreenMessage>) {
         let cameras = nokhwa::query(nokhwa::utils::ApiBackend::Auto)
             .unwrap()
             .into_iter()
@@ -93,7 +94,9 @@ impl super::Screenish for ConfigScreen {
                         .clone(),
                 };
                 Command::perform(async {}, |_| {
-                    transition_to_screen(super::camera_screen::CameraScreen::new(flags))
+                    super::ScreenMessage::TransitionToScreen(super::ScreenFlags::CameraScreenFlags(
+                        flags,
+                    ))
                 })
             }
         }

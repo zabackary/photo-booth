@@ -46,7 +46,6 @@ fn counter_animation() -> impl Animation<Item = CounterAnimationState> {
         .map(|(radius, alpha)| CounterAnimationState { radius, alpha })
 }
 
-#[derive(Clone)]
 pub(crate) struct CameraScreen {
     feed: CameraFeed,
     captured_frames: Vec<image::ImageBuffer<Rgba<u8>, Vec<u8>>>,
@@ -54,7 +53,7 @@ pub(crate) struct CameraScreen {
     counter_timeline: Timeline<CounterAnimationState>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct CameraScreenFlags {
     pub index: nokhwa::utils::CameraIndex,
 }
@@ -128,7 +127,9 @@ impl super::Screenish for CameraScreen {
             .map(super::ScreenMessage::CameraScreenMessage),
             CameraScreenMessage::CaptureFrame => iced::Command::none(),
             CameraScreenMessage::AllFramesCaptured => iced::Command::perform(async {}, |_| {
-                super::transition_to_screen(super::printing_screen::PrintingScreen::new(()))
+                super::ScreenMessage::TransitionToScreen(super::ScreenFlags::PrintingScreenFlags(
+                    super::printing_screen::PrintingScreenFlags {},
+                ))
             }),
         }
     }
@@ -155,7 +156,7 @@ impl super::Screenish for CameraScreen {
         .padding(20)
         .into()
     }
-    fn subscription(self) -> iced::Subscription<CameraScreenMessage> {
+    fn subscription(&self) -> iced::Subscription<CameraScreenMessage> {
         self.feed
             .subscription()
             .map(CameraScreenMessage::CameraFeedMessage)

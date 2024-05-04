@@ -15,6 +15,9 @@ impl std::fmt::Debug for PrintingScreen {
 #[derive(Debug, Clone)]
 pub enum PrintingScreenMessage {}
 
+#[derive(Debug, Clone)]
+pub(crate) struct PrintingScreenFlags {}
+
 impl Into<super::ScreenMessage> for PrintingScreenMessage {
     fn into(self) -> super::ScreenMessage {
         super::ScreenMessage::PrintingScreenMessage(self)
@@ -23,8 +26,8 @@ impl Into<super::ScreenMessage> for PrintingScreenMessage {
 
 impl super::Screenish for PrintingScreen {
     type Message = PrintingScreenMessage;
-    type Flags = ();
-    fn new(_flags: ()) -> (Self, Option<PrintingScreenMessage>) {
+    type Flags = PrintingScreenFlags;
+    fn new(_flags: PrintingScreenFlags) -> (Self, Option<PrintingScreenMessage>) {
         (PrintingScreen {}, None)
     }
     fn update(&mut self, message: PrintingScreenMessage) -> iced::Command<PrintingScreenMessage> {
@@ -50,7 +53,7 @@ impl super::Screenish for PrintingScreen {
         .padding(20)
         .into()
     }
-    fn subscription(self) -> iced::Subscription<PrintingScreenMessage> {
+    fn subscription(&self) -> iced::Subscription<PrintingScreenMessage> {
         iced::Subscription::none()
     }
 }
