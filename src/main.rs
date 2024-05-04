@@ -116,7 +116,8 @@ impl Application for PhotoBooth {
                     ))
                     .push(Space::with_width(12))
                     .push(button(text("Exit")).on_press(Message::ExitPressed))
-                    .align_items(Alignment::Center),
+                    .align_items(Alignment::Center)
+                    .padding(20),
             )
             .push(self.screen.view().map(Message::ScreenMessage))
             .spacing(20)
@@ -125,7 +126,6 @@ impl Application for PhotoBooth {
         container(content)
             .width(Length::Fill)
             .height(Length::Fill)
-            .padding(20)
             .center_x()
             .center_y()
             .into()
