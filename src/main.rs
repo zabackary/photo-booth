@@ -34,6 +34,7 @@ pub fn main() -> iced::Result {
 
 struct PhotoBooth {
     screen: screens::Screen,
+    config: Config,
 }
 
 #[derive(Debug, Clone)]
@@ -54,11 +55,15 @@ impl Application for PhotoBooth {
             Some(inner) => iced::Command::perform(async {}, |_| inner),
             None => iced::Command::none(),
         };
+        let fullscreen = flags.fullscreen;
         (
-            PhotoBooth { screen },
+            PhotoBooth {
+                screen,
+                config: flags,
+            },
             iced::Command::batch([
                 command.map(Message::ScreenMessage),
-                if flags.fullscreen {
+                if fullscreen {
                     window::change_mode(window::Id::MAIN, Mode::Fullscreen)
                 } else {
                     iced::Command::none()
@@ -68,7 +73,7 @@ impl Application for PhotoBooth {
     }
 
     fn title(&self) -> String {
-        String::from("Photo Booth")
+        self.config.name.clone()
     }
 
     fn update(&mut self, message: Message) -> iced::Command<Message> {
@@ -97,10 +102,11 @@ impl Application for PhotoBooth {
             .push(
                 Row::new()
                     .push(
-                        text("Photo Booth")
+                        text(&self.config.name)
                             .size(24)
                             .style(Color::from([0.8, 0.8, 0.8]))
-                            .width(Length::Fill),
+                            .width(Length::Fill)
+                            .vertical_alignment(alignment::Vertical::Center),
                     )
                     .push(container(
                         text(format!("v{}", env!("CARGO_PKG_VERSION")))
@@ -109,7 +115,8 @@ impl Application for PhotoBooth {
                             .vertical_alignment(alignment::Vertical::Center),
                     ))
                     .push(Space::with_width(12))
-                    .push(button(text("Exit")).on_press(Message::ExitPressed)),
+                    .push(button(text("Exit")).on_press(Message::ExitPressed))
+                    .align_items(Alignment::Center),
             )
             .push(self.screen.view().map(Message::ScreenMessage))
             .spacing(20)

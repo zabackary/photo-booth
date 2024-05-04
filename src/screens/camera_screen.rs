@@ -17,14 +17,16 @@ use nokhwa::{
     Camera,
 };
 
+const COUNTER_RADIUS: f32 = 80.0;
+
 #[derive(Clone)]
 struct CounterAnimationState {
     radius: f32,
     alpha: f32,
+    text_size: f32,
 }
 
 fn counter_animation() -> impl Animation<Item = CounterAnimationState> {
-    const COUNTER_RADIUS: f32 = 80.0;
     const ANIMATION_CYCLE_DURATION: u64 = 1000;
     let radius = anim::builder::key_frames(vec![
         anim::KeyFrame::new(0.0).by_percent(0.0),
@@ -43,9 +45,24 @@ fn counter_animation() -> impl Animation<Item = CounterAnimationState> {
             .easing(anim::easing::quad_ease()),
         anim::KeyFrame::new(1.0).by_duration(Duration::from_millis(ANIMATION_CYCLE_DURATION)),
     ]);
+    let text_size = anim::builder::key_frames(vec![
+        anim::KeyFrame::new(0.0).by_percent(0.0),
+        anim::KeyFrame::new(COUNTER_RADIUS)
+            .by_percent(0.4)
+            .easing(anim::easing::quad_ease()),
+        anim::KeyFrame::new(COUNTER_RADIUS).by_percent(0.8),
+        anim::KeyFrame::new(0.0)
+            .by_duration(Duration::from_millis(ANIMATION_CYCLE_DURATION))
+            .easing(anim::easing::quad_ease()),
+    ]);
     radius
         .zip(alpha)
-        .map(|(radius, alpha)| CounterAnimationState { radius, alpha })
+        .zip(text_size)
+        .map(|((radius, alpha), text_size)| CounterAnimationState {
+            radius,
+            alpha,
+            text_size,
+        })
 }
 
 pub(crate) struct CameraScreen {
@@ -163,7 +180,7 @@ impl super::Screenish for CameraScreen {
                         if self.counter_animation_running {
                             container(
                                 floating_element(
-                                    circle(
+                                    container(circle(
                                         counter_animation_value.radius,
                                         Color::from_rgba8(
                                             255,
@@ -171,9 +188,14 @@ impl super::Screenish for CameraScreen {
                                             255,
                                             counter_animation_value.alpha,
                                         ),
-                                    ),
+                                    ))
+                                    .width(COUNTER_RADIUS * 2.0)
+                                    .height(COUNTER_RADIUS * 2.0)
+                                    .align_x(iced::alignment::Horizontal::Center)
+                                    .align_y(iced::alignment::Vertical::Center),
                                     container(
-                                        text(format!("{}", self.counter_animation_value)).size(80),
+                                        text(format!("{}", self.counter_animation_value))
+                                            .size(counter_animation_value.text_size),
                                     )
                                     .width(Length::Fill)
                                     .height(Length::Fill)
