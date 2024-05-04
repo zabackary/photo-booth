@@ -30,7 +30,7 @@ impl CameraFeed {
             CameraFeed {
                 camera: Arc::new(Mutex::new(camera)),
                 current_frame: Arc::new(Mutex::new(None)),
-                border_radius: border_radius,
+                border_radius,
             },
             Some(CameraMessage::CaptureFrame),
         )
