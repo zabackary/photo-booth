@@ -1,10 +1,13 @@
-use std::{rc::Rc, sync::Arc, time::Duration};
+use std::time::Duration;
 
-use crate::camera_feed::{CameraFeed, CameraMessage};
+use crate::{
+    camera_feed::{CameraFeed, CameraMessage},
+    utils::circle::circle,
+};
 use anim::{Animation, Timeline};
 use iced::{
-    widget::{button, container, text, Row},
-    Alignment, Element, Length,
+    widget::{button, container, space, text, Container, Row},
+    Alignment, Color, Element, Length,
 };
 use iced_aw::floating_element;
 use image::Rgba;
@@ -13,7 +16,6 @@ use nokhwa::{
     utils::{RequestedFormat, RequestedFormatType},
     Camera,
 };
-use tokio::sync::Mutex;
 
 #[derive(Clone)]
 struct CounterAnimationState {
@@ -22,7 +24,7 @@ struct CounterAnimationState {
 }
 
 fn counter_animation() -> impl Animation<Item = CounterAnimationState> {
-    const COUNTER_RADIUS: f32 = 40.0;
+    const COUNTER_RADIUS: f32 = 80.0;
     const ANIMATION_CYCLE_DURATION: u64 = 1000;
     let radius = anim::builder::key_frames(vec![
         anim::KeyFrame::new(0.0).by_percent(0.0),
@@ -49,6 +51,7 @@ fn counter_animation() -> impl Animation<Item = CounterAnimationState> {
 pub(crate) struct CameraScreen {
     feed: CameraFeed,
     captured_frames: Vec<image::ImageBuffer<Rgba<u8>, Vec<u8>>>,
+    counter_animation_value: u16,
     counter_animation_running: bool,
     counter_timeline: Timeline<CounterAnimationState>,
 }
@@ -69,7 +72,7 @@ pub enum CameraScreenMessage {
     CameraFeedMessage(CameraMessage),
     CaptureButtonPressed,
     StartCaptureFrameAnimation,
-    CaptureFrame,
+    CaptureFrameAnimationEnded,
     AllFramesCaptured,
     Tick,
 }
@@ -92,6 +95,7 @@ impl super::Screenish for CameraScreen {
         (
             CameraScreen {
                 feed,
+                counter_animation_value: 0,
                 counter_animation_running: false,
                 captured_frames: vec![],
                 counter_timeline: counter_animation().to_timeline(),
@@ -115,17 +119,33 @@ impl super::Screenish for CameraScreen {
                 self.counter_timeline.update();
                 if self.counter_animation_running && self.counter_timeline.status().is_completed() {
                     self.counter_animation_running = false;
-                    iced::Command::perform(async {}, |_| CameraScreenMessage::CaptureFrame)
-                        .map(super::ScreenMessage::CameraScreenMessage)
+                    iced::Command::perform(async {}, |_| {
+                        CameraScreenMessage::CaptureFrameAnimationEnded
+                    })
+                    .map(super::ScreenMessage::CameraScreenMessage)
                 } else {
                     iced::Command::none()
                 }
             }
-            CameraScreenMessage::CaptureButtonPressed => iced::Command::perform(async {}, |_| {
-                CameraScreenMessage::StartCaptureFrameAnimation
-            })
-            .map(super::ScreenMessage::CameraScreenMessage),
-            CameraScreenMessage::CaptureFrame => iced::Command::none(),
+            CameraScreenMessage::CaptureFrameAnimationEnded => {
+                self.counter_animation_value -= 1;
+                if self.counter_animation_value == 0 {
+                    // TODO: capture frame
+                    iced::Command::none()
+                } else {
+                    iced::Command::perform(async {}, |_| {
+                        CameraScreenMessage::StartCaptureFrameAnimation
+                    })
+                    .map(super::ScreenMessage::CameraScreenMessage)
+                }
+            }
+            CameraScreenMessage::CaptureButtonPressed => {
+                self.counter_animation_value = 3;
+                iced::Command::perform(async {}, |_| {
+                    CameraScreenMessage::StartCaptureFrameAnimation
+                })
+                .map(super::ScreenMessage::CameraScreenMessage)
+            }
             CameraScreenMessage::AllFramesCaptured => iced::Command::perform(async {}, |_| {
                 super::ScreenMessage::TransitionToScreen(super::ScreenFlags::PrintingScreenFlags(
                     super::printing_screen::PrintingScreenFlags {},
@@ -134,16 +154,45 @@ impl super::Screenish for CameraScreen {
         }
     }
     fn view(&self) -> Element<CameraScreenMessage> {
+        let counter_animation_value = self.counter_timeline.value();
         container(
             Row::new()
-                .push(floating_element(
-                    self.feed.view().width(Length::Fill).height(Length::Fill),
-                    container(text("test"))
-                        .width(Length::Fill)
-                        .height(Length::Fill)
-                        .align_x(iced::alignment::Horizontal::Center)
-                        .align_y(iced::alignment::Vertical::Center),
-                ))
+                .push(
+                    floating_element(
+                        self.feed.view().width(Length::Fill).height(Length::Fill),
+                        if self.counter_animation_running {
+                            container(
+                                floating_element(
+                                    circle(
+                                        counter_animation_value.radius,
+                                        Color::from_rgba8(
+                                            255,
+                                            255,
+                                            255,
+                                            counter_animation_value.alpha,
+                                        ),
+                                    ),
+                                    container(
+                                        text(format!("{}", self.counter_animation_value)).size(80),
+                                    )
+                                    .width(Length::Fill)
+                                    .height(Length::Fill)
+                                    .align_x(iced::alignment::Horizontal::Center)
+                                    .align_y(iced::alignment::Vertical::Center)
+                                    .clip(true),
+                                )
+                                .offset(0.0),
+                            )
+                            .width(Length::Fill)
+                            .height(Length::Fill)
+                            .align_x(iced::alignment::Horizontal::Center)
+                            .align_y(iced::alignment::Vertical::Center)
+                        } else {
+                            container(space::Space::new(0, 0))
+                        },
+                    )
+                    .offset(0.0),
+                )
                 .push(
                     button(text("Take picture"))
                         .on_press(CameraScreenMessage::CaptureButtonPressed),
@@ -157,9 +206,18 @@ impl super::Screenish for CameraScreen {
         .into()
     }
     fn subscription(&self) -> iced::Subscription<CameraScreenMessage> {
-        self.feed
-            .subscription()
-            .map(CameraScreenMessage::CameraFeedMessage)
+        iced::Subscription::batch([
+            self.feed
+                .subscription()
+                .map(CameraScreenMessage::CameraFeedMessage),
+            if self.counter_timeline.status().is_animating() {
+                const FPS: f32 = 60.0;
+                iced::time::every(Duration::from_secs_f32(1.0 / FPS))
+                    .map(|_tick| CameraScreenMessage::Tick)
+            } else {
+                iced::Subscription::none()
+            },
+        ])
     }
 }
 

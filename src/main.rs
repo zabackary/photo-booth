@@ -1,6 +1,7 @@
 mod camera_feed;
 mod config;
 mod screens;
+mod utils;
 
 use config::Config;
 use iced::widget::{button, container, text, Column, Row, Space};
