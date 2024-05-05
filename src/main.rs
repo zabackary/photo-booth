@@ -50,7 +50,7 @@ impl Application for PhotoBooth {
     type Theme = Theme;
 
     fn new(flags: Config) -> (Self, iced::Command<Message>) {
-        let (screen, command) = screens::initial_screen().into();
+        let (screen, command) = screens::initial_screen(flags.clone()).into();
         let command = match command {
             Some(inner) => iced::Command::perform(async {}, |_| inner),
             None => iced::Command::none(),

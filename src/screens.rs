@@ -1,5 +1,7 @@
 use iced::{Element, Subscription};
 
+use crate::config::Config;
+
 mod camera_screen;
 mod config_screen;
 mod printing_screen;
@@ -47,8 +49,8 @@ impl Into<(Screen, Option<ScreenMessage>)> for ScreenFlags {
     }
 }
 
-pub fn initial_screen() -> ScreenFlags {
-    ScreenFlags::ConfigScreenFlags(config_screen::ConfigScreenFlags {})
+pub fn initial_screen(config: Config) -> ScreenFlags {
+    ScreenFlags::ConfigScreenFlags(config_screen::ConfigScreenFlags { config })
 }
 
 #[derive(Debug)]

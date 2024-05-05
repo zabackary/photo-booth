@@ -7,6 +7,8 @@ use iced::{
 };
 use nokhwa::utils::CameraInfo;
 
+use crate::config::Config;
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Hash)]
 pub struct CameraWrapper(CameraInfo);
 
@@ -27,6 +29,7 @@ pub(crate) struct ConfigScreen {
     cameras: combo_box::State<CameraWrapper>,
     selected_camera: Option<CameraWrapper>,
     text: String,
+    config: Config,
 }
 
 #[derive(Debug, Clone)]
@@ -38,7 +41,9 @@ pub enum ConfigScreenMessage {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct ConfigScreenFlags {}
+pub(crate) struct ConfigScreenFlags {
+    pub config: Config,
+}
 
 impl Into<super::ScreenMessage> for ConfigScreenMessage {
     fn into(self) -> super::ScreenMessage {
@@ -49,7 +54,7 @@ impl Into<super::ScreenMessage> for ConfigScreenMessage {
 impl super::Screenish for ConfigScreen {
     type Message = ConfigScreenMessage;
     type Flags = ConfigScreenFlags;
-    fn new(_flags: ConfigScreenFlags) -> (Self, Option<ConfigScreenMessage>) {
+    fn new(flags: ConfigScreenFlags) -> (Self, Option<ConfigScreenMessage>) {
         let cameras = nokhwa::query(nokhwa::utils::ApiBackend::Auto)
             .unwrap()
             .into_iter()
@@ -60,6 +65,7 @@ impl super::Screenish for ConfigScreen {
                 selected_camera: None,
                 text: String::new(),
                 cameras: combo_box::State::new(cameras),
+                config: flags.config,
             },
             None,
         )
@@ -92,6 +98,7 @@ impl super::Screenish for ConfigScreen {
                         .0
                         .index()
                         .clone(),
+                    config: self.config.clone(),
                 };
                 Command::perform(async {}, |_| {
                     super::ScreenMessage::TransitionToScreen(super::ScreenFlags::CameraScreenFlags(
