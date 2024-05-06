@@ -306,6 +306,10 @@ impl super::Screenish for CameraScreen {
                                 self.feed.view().width(Length::Fill).height(Length::Fill),
                                 camera_button().on_press(CameraScreenMessage::CaptureButtonPressed),
                             )
+                            .hide(!matches!(
+                                self.capture_sequence_state,
+                                CaptureSequenceState::None
+                            ))
                             .anchor(floating_element::Anchor::SouthEast)
                             .offset(8.0),
                             match self.capture_sequence_state {
