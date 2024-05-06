@@ -119,7 +119,9 @@ impl Application for PhotoBooth {
                     .align_items(Alignment::Center)
                     .padding(20),
             )
-            .push(self.screen.view().map(Message::ScreenMessage))
+            .push(
+                self.screen.view().map(Message::ScreenMessage), //.explain(Color::from_rgb8(255, 0, 0)),
+            )
             .spacing(20)
             .align_items(Alignment::Center);
 

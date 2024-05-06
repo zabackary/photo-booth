@@ -1,3 +1,5 @@
+mod element_strip_renderer;
+
 use std::time::Duration;
 
 use crate::{
@@ -7,7 +9,7 @@ use crate::{
 };
 use anim::{Animation, Timeline};
 use iced::{
-    widget::{container, space, text, Row},
+    widget::{container, image::Handle, space, text, Row},
     Alignment, Color, Element, Length,
 };
 use iced_aw::floating_element;
@@ -18,19 +20,21 @@ use nokhwa::{
     Camera,
 };
 
+use self::element_strip_renderer::element_strip_renderer;
+
 const COUNTER_RADIUS: f32 = 80.0;
 const GET_READY_FONT_SIZE: f32 = 60.0;
 
 fn get_ready_animation() -> impl Animation<Item = f32> {
-    anim::builder::key_frames(vec![
+    anim::builder::key_frames([
         anim::KeyFrame::new(0.0).by_percent(0.0),
         anim::KeyFrame::new(GET_READY_FONT_SIZE)
             .by_percent(0.2)
-            .easing(anim::easing::quad_ease()),
+            .easing(anim::easing::quad_ease().mode(anim::easing::EasingMode::Out)),
         anim::KeyFrame::new(GET_READY_FONT_SIZE).by_percent(0.9),
         anim::KeyFrame::new(0.0)
             .by_duration(Duration::from_millis(3000))
-            .easing(anim::easing::quad_ease()),
+            .easing(anim::easing::quad_ease().mode(anim::easing::EasingMode::In)),
     ])
 }
 
@@ -43,32 +47,32 @@ struct CounterAnimationState {
 
 fn counter_animation() -> impl Animation<Item = CounterAnimationState> {
     const COUNTER_ANIMATION_DURATION: u64 = 1000;
-    let radius = anim::builder::key_frames(vec![
+    let radius = anim::builder::key_frames([
         anim::KeyFrame::new(0.0).by_percent(0.0),
         anim::KeyFrame::new(COUNTER_RADIUS)
             .by_percent(0.4)
-            .easing(anim::easing::quad_ease()),
+            .easing(anim::easing::quad_ease().mode(anim::easing::EasingMode::Out)),
         anim::KeyFrame::new(COUNTER_RADIUS).by_percent(0.8),
         anim::KeyFrame::new(0.0)
             .by_duration(Duration::from_millis(COUNTER_ANIMATION_DURATION))
-            .easing(anim::easing::quad_ease()),
+            .easing(anim::easing::quad_ease().mode(anim::easing::EasingMode::In)),
     ]);
-    let alpha = anim::builder::key_frames(vec![
+    let alpha = anim::builder::key_frames([
         anim::KeyFrame::new(0.0).by_percent(0.0),
         anim::KeyFrame::new(1.0)
             .by_percent(0.4)
             .easing(anim::easing::quad_ease()),
         anim::KeyFrame::new(1.0).by_duration(Duration::from_millis(COUNTER_ANIMATION_DURATION)),
     ]);
-    let text_size = anim::builder::key_frames(vec![
+    let text_size = anim::builder::key_frames([
         anim::KeyFrame::new(0.0).by_percent(0.0),
         anim::KeyFrame::new(COUNTER_RADIUS)
             .by_percent(0.4)
-            .easing(anim::easing::quad_ease()),
+            .easing(anim::easing::quad_ease().mode(anim::easing::EasingMode::Out)),
         anim::KeyFrame::new(COUNTER_RADIUS).by_percent(0.8),
         anim::KeyFrame::new(0.0)
             .by_duration(Duration::from_millis(COUNTER_ANIMATION_DURATION))
-            .easing(anim::easing::quad_ease()),
+            .easing(anim::easing::quad_ease().mode(anim::easing::EasingMode::In)),
     ]);
     radius
         .zip(alpha)
@@ -82,7 +86,7 @@ fn counter_animation() -> impl Animation<Item = CounterAnimationState> {
 
 fn snap_animation() -> impl Animation<Item = f32> {
     const SNAP_ANIMATION_DURATION: u64 = 500;
-    anim::builder::key_frames(vec![
+    anim::builder::key_frames([
         anim::KeyFrame::new(0.0).by_percent(0.0),
         anim::KeyFrame::new(1.0)
             .by_percent(0.2)
@@ -95,14 +99,12 @@ fn snap_animation() -> impl Animation<Item = f32> {
 
 fn frame_size_animation() -> impl Animation<Item = f32> {
     const FRAME_SIZE_ANIMATION_DURATION: u64 = 1000;
-    anim::builder::key_frames(vec![
-        anim::KeyFrame::new(0.0).by_percent(0.0),
-        anim::KeyFrame::new(1.2)
-            .by_percent(0.8)
-            .easing(anim::easing::quad_ease()),
-        anim::KeyFrame::new(1.0)
-            .by_duration(Duration::from_millis(FRAME_SIZE_ANIMATION_DURATION))
-            .easing(anim::easing::quad_ease()),
+    anim::builder::key_frames([
+        anim::KeyFrame::new(1.0).by_percent(0.0),
+        anim::KeyFrame::new(0.0)
+            .by_percent(1.0)
+            .easing(anim::easing::bounce_ease().mode(anim::easing::EasingMode::In)),
+        anim::KeyFrame::new(1.0).by_duration(Duration::from_millis(FRAME_SIZE_ANIMATION_DURATION)),
     ])
 }
 
@@ -121,7 +123,7 @@ enum CaptureSequenceState {
 pub(crate) struct CameraScreen {
     feed: CameraFeed,
     config: Config,
-    captured_frames: Vec<image::ImageBuffer<Rgba<u8>, Vec<u8>>>,
+    captured_frames: Vec<(image::ImageBuffer<Rgba<u8>, Vec<u8>>, Handle)>,
 
     capture_sequence_state: CaptureSequenceState,
 
@@ -244,7 +246,6 @@ impl super::Screenish for CameraScreen {
                                         CaptureSequenceState::FramesCapture(
                                             FrameCaptureSequenceState::FrameSize,
                                         );
-                                    self.frame_size_timeline.begin();
                                 }
                             }
                             FrameCaptureSequenceState::FrameSize => {
@@ -277,7 +278,11 @@ impl super::Screenish for CameraScreen {
                 iced::Command::none()
             }
             CameraScreenMessage::ImageCaptured(image) => {
-                self.captured_frames.push(image);
+                self.captured_frames.push((
+                    image.clone(), // bad for performance, but we need to give a handle to iced to render the preview...
+                    Handle::from_pixels(image.width(), image.height(), image.into_raw()),
+                ));
+                self.frame_size_timeline.begin();
                 iced::Command::none()
             }
             CameraScreenMessage::CaptureButtonPressed => {
@@ -291,6 +296,7 @@ impl super::Screenish for CameraScreen {
         let counter_animation_value = self.counter_timeline.value();
         let snap_animation_value = self.snap_timeline.value();
         let get_ready_size = self.get_ready_timeline.value();
+        let frame_size_animation_value = self.frame_size_timeline.value();
         floating_element(
             container(
                 Row::new()
@@ -346,7 +352,6 @@ impl super::Screenish for CameraScreen {
                                     .align_x(iced::alignment::Horizontal::Center)
                                     .align_y(iced::alignment::Vertical::Center)
                                 }
-
                                 _ => container(space::Space::new(0, 0)),
                             }
                             .width(Length::Fill)
@@ -356,7 +361,20 @@ impl super::Screenish for CameraScreen {
                         )
                         .offset(0.0),
                     )
-                    .push(iced::widget::image("assets/template.png"))
+                    .push(element_strip_renderer(
+                        "assets/template.png".into(),
+                        &self.captured_frames,
+                        &self.config.template,
+                        if matches!(
+                            self.capture_sequence_state,
+                            CaptureSequenceState::FramesCapture(FrameCaptureSequenceState::Snap)
+                        ) {
+                            Some(snap_animation_value)
+                        } else {
+                            None
+                        },
+                        frame_size_animation_value,
+                    ))
                     .spacing(20)
                     .align_items(Alignment::Center),
             )
