@@ -262,13 +262,24 @@ impl super::Screenish for CameraScreen {
                                         self.counter_timeline.begin();
                                     } else {
                                         // transition to the next screen if we're done
-                                        return iced::Command::perform(async {}, |_| {
-                                            super::ScreenMessage::TransitionToScreen(
+                                        let config = self.config.clone();
+                                        let captured_frames = self
+                                            .captured_frames
+                                            .clone()
+                                            .into_iter()
+                                            .map(|frame| frame.0)
+                                            .collect();
+                                        return iced::Command::perform(
+                                            async {
                                                 super::ScreenFlags::PrintingScreenFlags(
-                                                    super::printing_screen::PrintingScreenFlags {},
-                                                ),
-                                            )
-                                        });
+                                                    super::printing_screen::PrintingScreenFlags {
+                                                        config,
+                                                        captured_frames,
+                                                    },
+                                                )
+                                            },
+                                            super::ScreenMessage::TransitionToScreen,
+                                        );
                                     }
                                 }
                             }
