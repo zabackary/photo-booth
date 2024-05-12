@@ -1,5 +1,8 @@
 mod image_strip_renderer;
 
+use std::time::Duration;
+
+use anim::{Animation, Timeline};
 use iced::{
     widget::{container, image::Handle, text, Column, Image, ProgressBar, Row, Space},
     Element, Length,
@@ -9,6 +12,17 @@ use image::RgbaImage;
 use crate::config::Config;
 
 use self::image_strip_renderer::image_strip_renderer;
+
+fn progress_bar_animation(
+    old_value: f32,
+    new_value: f32,
+    duration_ms: u64,
+) -> impl Animation<Item = f32> {
+    anim::Options::new(old_value, new_value)
+        .easing(anim::easing::quad_ease().mode(anim::easing::EasingMode::InOut))
+        .duration(Duration::from_millis(duration_ms))
+        .build()
+}
 
 #[derive(Debug)]
 enum ProcessingState {
@@ -21,6 +35,8 @@ enum ProcessingState {
 pub(crate) struct PrintingScreen {
     config: Config,
 
+    progress_bar_timeline: Timeline<f32>,
+
     captured_frames: Option<Vec<image::RgbaImage>>,
 
     processing_state: ProcessingState,
@@ -32,6 +48,7 @@ pub(crate) struct PrintingScreen {
 pub enum PrintingScreenMessage {
     GenerateImage,
     FinishProcessImage(Option<(image::RgbaImage, Handle)>),
+    Tick,
 }
 
 #[derive(Debug, Clone)]
@@ -56,6 +73,8 @@ impl super::Screenish for PrintingScreen {
                 captured_frames: Some(flags.captured_frames),
                 config: flags.config,
 
+                progress_bar_timeline: progress_bar_animation(0.0, 0.8, 3000).to_timeline(),
+
                 preview_handle: None,
                 printable_image: None,
             },
@@ -65,6 +84,7 @@ impl super::Screenish for PrintingScreen {
     fn update(&mut self, message: PrintingScreenMessage) -> iced::Command<PrintingScreenMessage> {
         match message {
             PrintingScreenMessage::GenerateImage => {
+                self.progress_bar_timeline.begin();
                 let template = self.config.template.clone();
                 let maybe_captured_frames = self.captured_frames.take();
                 if let Some(captured_frames) = maybe_captured_frames {
@@ -104,10 +124,23 @@ impl super::Screenish for PrintingScreen {
                 self.printable_image = Some(rendered);
                 self.preview_handle = Some(handle);
                 self.processing_state = ProcessingState::Printing;
+                self.progress_bar_timeline =
+                    progress_bar_animation(self.progress_bar_timeline.value(), 1.0, 500)
+                        .to_timeline();
+                self.progress_bar_timeline.begin();
                 iced::Command::none()
             }
             PrintingScreenMessage::FinishProcessImage(None) => {
                 self.processing_state = ProcessingState::GenerateImageFailed;
+                iced::Command::none()
+            }
+            PrintingScreenMessage::Tick => {
+                self.progress_bar_timeline.update();
+                if self.progress_bar_timeline.status().is_completed()
+                    && self.progress_bar_timeline.value() == 1.0
+                {
+                    self.progress_bar_timeline.pause();
+                }
                 iced::Command::none()
             }
         }
@@ -120,7 +153,7 @@ impl super::Screenish for PrintingScreen {
                         .push(
                             text(match self.processing_state {
                                 ProcessingState::GeneratingImage => "Processing your photos...",
-                                ProcessingState::Printing => "Printing...",
+                                ProcessingState::Printing => "Email addresses",
                                 ProcessingState::GenerateImageFailed => {
                                     "Failed to generate your image."
                                 }
@@ -128,7 +161,11 @@ impl super::Screenish for PrintingScreen {
                             .size(46),
                         )
                         .push(Space::with_height(24))
-                        .push(ProgressBar::new(0.0..=1.0, 0.5).height(16).width(460))
+                        .push(
+                            ProgressBar::new(0.0..=1.0, self.progress_bar_timeline.value())
+                                .height(16)
+                                .width(460),
+                        )
                         .align_items(iced::Alignment::Center)
                         .width(Length::Fill),
                 )
@@ -145,8 +182,15 @@ impl super::Screenish for PrintingScreen {
         .padding(20)
         .into()
     }
+
     fn subscription(&self) -> iced::Subscription<PrintingScreenMessage> {
-        iced::Subscription::none()
+        if self.progress_bar_timeline.status().is_animating() {
+            const FPS: f32 = 60.0;
+            iced::time::every(Duration::from_secs_f32(1.0 / FPS))
+                .map(|_tick| PrintingScreenMessage::Tick)
+        } else {
+            iced::Subscription::none()
+        }
     }
 }
 
