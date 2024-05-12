@@ -1,6 +1,6 @@
 use iced::{
-    widget::{container, image::Handle, text, Column, Image, Row},
-    Element, Length,
+    widget::{button, container, image::Handle, text, Button, Column, Image, Row, Scrollable},
+    Element, Length, Theme,
 };
 use image::RgbaImage;
 
@@ -60,7 +60,14 @@ impl super::Screenish for EmailScreen {
             Row::new()
                 .push(
                     Column::new()
-                        .push(text("email screen!").size(46))
+                        .push(text("Enter your emails").size(46))
+                        .push(text("filler text"))
+                        .push("By pressing \"Send\", you consent to having your photos processed by the system and saved on our servers.")
+                        .push(
+                          Row::new()
+                          .push(button(text("Cancel and delete photos")).style(iced::theme::Button::Destructive))
+                          .push(button(text("Send")))
+                        )
                         .align_items(iced::Alignment::Center)
                         .width(Length::Fill),
                 )
