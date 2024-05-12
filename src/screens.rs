@@ -4,21 +4,24 @@ use crate::config::Config;
 
 mod camera_screen;
 mod config_screen;
-mod printing_screen;
+mod email_screen;
+mod generation_screen;
 
 #[derive(Debug, Clone)]
 pub enum ScreenMessage {
     TransitionToScreen(ScreenFlags),
     CameraScreenMessage(camera_screen::CameraScreenMessage),
     ConfigScreenMessage(config_screen::ConfigScreenMessage),
-    PrintingScreenMessage(printing_screen::PrintingScreenMessage),
+    GenerationScreenMessage(generation_screen::GenerationScreenMessage),
+    EmailScreenMessage(email_screen::EmailScreenMessage),
 }
 
 #[derive(Debug, Clone)]
 pub enum ScreenFlags {
     CameraScreenFlags(camera_screen::CameraScreenFlags),
     ConfigScreenFlags(config_screen::ConfigScreenFlags),
-    PrintingScreenFlags(printing_screen::PrintingScreenFlags),
+    GenerationScreenFlags(generation_screen::GenerationScreenFlags),
+    EmailScreenFlags(email_screen::EmailScreenFlags),
 }
 
 impl Into<(Screen, Option<ScreenMessage>)> for ScreenFlags {
@@ -38,11 +41,18 @@ impl Into<(Screen, Option<ScreenMessage>)> for ScreenFlags {
                     message.map(ScreenMessage::ConfigScreenMessage),
                 )
             }
-            ScreenFlags::PrintingScreenFlags(flags) => {
-                let (screen, message) = printing_screen::PrintingScreen::new(flags);
+            ScreenFlags::GenerationScreenFlags(flags) => {
+                let (screen, message) = generation_screen::GenerationScreen::new(flags);
                 (
-                    Screen::PrintingScreen(screen),
-                    message.map(ScreenMessage::PrintingScreenMessage),
+                    Screen::GenerationScreen(screen),
+                    message.map(ScreenMessage::GenerationScreenMessage),
+                )
+            }
+            ScreenFlags::EmailScreenFlags(flags) => {
+                let (screen, message) = email_screen::EmailScreen::new(flags);
+                (
+                    Screen::EmailScreen(screen),
+                    message.map(ScreenMessage::EmailScreenMessage),
                 )
             }
         }
@@ -57,7 +67,8 @@ pub fn initial_screen(config: Config) -> ScreenFlags {
 pub enum Screen {
     CameraScreen(camera_screen::CameraScreen),
     ConfigScreen(config_screen::ConfigScreen),
-    PrintingScreen(printing_screen::PrintingScreen),
+    GenerationScreen(generation_screen::GenerationScreen),
+    EmailScreen(email_screen::EmailScreen),
 }
 
 #[derive(Debug)]
@@ -85,7 +96,10 @@ impl Screen {
             (Screen::ConfigScreen(screen), ScreenMessage::ConfigScreenMessage(msg)) => {
                 ScreenUpdateOutcome::Command(screen.update(msg).map(|x| x.into()))
             }
-            (Screen::PrintingScreen(screen), ScreenMessage::PrintingScreenMessage(msg)) => {
+            (Screen::GenerationScreen(screen), ScreenMessage::GenerationScreenMessage(msg)) => {
+                ScreenUpdateOutcome::Command(screen.update(msg).map(|x| x.into()))
+            }
+            (Screen::EmailScreen(screen), ScreenMessage::EmailScreenMessage(msg)) => {
                 ScreenUpdateOutcome::Command(screen.update(msg).map(|x| x.into()))
             }
             _ => {
@@ -99,7 +113,8 @@ impl Screen {
         match self {
             Screen::CameraScreen(screen) => screen.subscription().map(|x| x.into()),
             Screen::ConfigScreen(screen) => screen.subscription().map(|x| x.into()),
-            Screen::PrintingScreen(screen) => screen.subscription().map(|x| x.into()),
+            Screen::GenerationScreen(screen) => screen.subscription().map(|x| x.into()),
+            Screen::EmailScreen(screen) => screen.subscription().map(|x| x.into()),
         }
     }
 
@@ -107,7 +122,8 @@ impl Screen {
         match self {
             Screen::CameraScreen(screen) => screen.view().map(|x| x.into()),
             Screen::ConfigScreen(screen) => screen.view().map(|x| x.into()),
-            Screen::PrintingScreen(screen) => screen.view().map(|x| x.into()),
+            Screen::GenerationScreen(screen) => screen.view().map(|x| x.into()),
+            Screen::EmailScreen(screen) => screen.view().map(|x| x.into()),
         }
     }
 }

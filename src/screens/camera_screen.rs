@@ -123,6 +123,7 @@ enum CaptureSequenceState {
 pub(crate) struct CameraScreen {
     feed: CameraFeed,
     config: Config,
+    index: nokhwa::utils::CameraIndex,
     captured_frames: Vec<(image::ImageBuffer<Rgba<u8>, Vec<u8>>, Handle)>,
 
     capture_sequence_state: CaptureSequenceState,
@@ -165,13 +166,14 @@ impl super::Screenish for CameraScreen {
     fn new(flags: CameraScreenFlags) -> (Self, Option<CameraScreenMessage>) {
         let requested =
             RequestedFormat::new::<RgbAFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
-        let mut camera = Camera::new(flags.index, requested).unwrap();
+        let mut camera = Camera::new(flags.index.clone(), requested).unwrap();
         camera.open_stream().unwrap();
         let (feed, feed_command) = CameraFeed::new(camera, 48.into());
         (
             CameraScreen {
                 feed,
                 config: flags.config.clone(),
+                index: flags.index,
                 captured_frames: vec![],
 
                 capture_sequence_state: CaptureSequenceState::None,
@@ -269,12 +271,14 @@ impl super::Screenish for CameraScreen {
                                             .into_iter()
                                             .map(|frame| frame.0)
                                             .collect();
+                                        let index = self.index.clone();
                                         return iced::Command::perform(
                                             async {
-                                                super::ScreenFlags::PrintingScreenFlags(
-                                                    super::printing_screen::PrintingScreenFlags {
+                                                super::ScreenFlags::GenerationScreenFlags(
+                                                    super::generation_screen::GenerationScreenFlags {
                                                         config,
                                                         captured_frames,
+                                                        index
                                                     },
                                                 )
                                             },

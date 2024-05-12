@@ -32,8 +32,9 @@ enum ProcessingState {
 }
 
 #[derive(Debug)]
-pub(crate) struct PrintingScreen {
+pub(crate) struct GenerationScreen {
     config: Config,
+    index: nokhwa::utils::CameraIndex,
 
     progress_bar_timeline: Timeline<f32>,
 
@@ -45,45 +46,48 @@ pub(crate) struct PrintingScreen {
 }
 
 #[derive(Debug, Clone)]
-pub enum PrintingScreenMessage {
+pub enum GenerationScreenMessage {
     GenerateImage,
     FinishProcessImage(Option<(image::RgbaImage, Handle)>),
     Tick,
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct PrintingScreenFlags {
+pub(crate) struct GenerationScreenFlags {
     pub config: Config,
+    pub index: nokhwa::utils::CameraIndex,
+
     pub captured_frames: Vec<image::RgbaImage>,
 }
 
-impl Into<super::ScreenMessage> for PrintingScreenMessage {
+impl Into<super::ScreenMessage> for GenerationScreenMessage {
     fn into(self) -> super::ScreenMessage {
-        super::ScreenMessage::PrintingScreenMessage(self)
+        super::ScreenMessage::GenerationScreenMessage(self)
     }
 }
 
-impl super::Screenish for PrintingScreen {
-    type Message = PrintingScreenMessage;
-    type Flags = PrintingScreenFlags;
-    fn new(flags: PrintingScreenFlags) -> (Self, Option<PrintingScreenMessage>) {
+impl super::Screenish for GenerationScreen {
+    type Message = GenerationScreenMessage;
+    type Flags = GenerationScreenFlags;
+    fn new(flags: GenerationScreenFlags) -> (Self, Option<GenerationScreenMessage>) {
         (
-            PrintingScreen {
+            GenerationScreen {
                 processing_state: ProcessingState::GeneratingImage,
                 captured_frames: Some(flags.captured_frames),
                 config: flags.config,
+                index: flags.index,
 
                 progress_bar_timeline: progress_bar_animation(0.0, 0.8, 3000).to_timeline(),
 
                 preview_handle: None,
                 printable_image: None,
             },
-            Some(PrintingScreenMessage::GenerateImage),
+            Some(GenerationScreenMessage::GenerateImage),
         )
     }
-    fn update(&mut self, message: PrintingScreenMessage) -> iced::Command<PrintingScreenMessage> {
+    fn update(&mut self, message: GenerationScreenMessage) -> iced::Command<super::ScreenMessage> {
         match message {
-            PrintingScreenMessage::GenerateImage => {
+            GenerationScreenMessage::GenerateImage => {
                 self.progress_bar_timeline.begin();
                 let template = self.config.template.clone();
                 let maybe_captured_frames = self.captured_frames.take();
@@ -113,14 +117,15 @@ impl super::Screenish for PrintingScreen {
                             .await
                             .ok()
                         },
-                        PrintingScreenMessage::FinishProcessImage,
+                        GenerationScreenMessage::FinishProcessImage,
                     )
+                    .map(super::ScreenMessage::GenerationScreenMessage)
                 } else {
-                    eprintln!("warning: PrintingScreenMessage::GenerateImage called while there was no captured frame data");
+                    eprintln!("warning: GenerationScreenMessage::GenerateImage called while there was no captured frame data");
                     iced::Command::none()
                 }
             }
-            PrintingScreenMessage::FinishProcessImage(Some((rendered, handle))) => {
+            GenerationScreenMessage::FinishProcessImage(Some((rendered, handle))) => {
                 self.printable_image = Some(rendered);
                 self.preview_handle = Some(handle);
                 self.processing_state = ProcessingState::Printing;
@@ -130,22 +135,45 @@ impl super::Screenish for PrintingScreen {
                 self.progress_bar_timeline.begin();
                 iced::Command::none()
             }
-            PrintingScreenMessage::FinishProcessImage(None) => {
+            GenerationScreenMessage::FinishProcessImage(None) => {
                 self.processing_state = ProcessingState::GenerateImageFailed;
                 iced::Command::none()
             }
-            PrintingScreenMessage::Tick => {
+            GenerationScreenMessage::Tick => {
                 self.progress_bar_timeline.update();
                 if self.progress_bar_timeline.status().is_completed()
                     && self.progress_bar_timeline.value() == 1.0
                 {
-                    self.progress_bar_timeline.pause();
+                    let config = self.config.clone();
+                    let index = self.index.clone();
+                    let preview_handle = self
+                        .preview_handle
+                        .clone()
+                        .expect("preview handle is None when progress bar is finished");
+                    let printable_image = self
+                        .printable_image
+                        .clone()
+                        .expect("printable image is None when progress bar is finished");
+                    return iced::Command::perform(
+                        async {
+                            super::ScreenFlags::EmailScreenFlags(
+                                super::email_screen::EmailScreenFlags {
+                                    config,
+                                    index,
+
+                                    preview_handle,
+                                    printable_image,
+                                },
+                            )
+                        },
+                        super::ScreenMessage::TransitionToScreen,
+                    );
                 }
                 iced::Command::none()
             }
         }
     }
-    fn view(&self) -> Element<PrintingScreenMessage> {
+    fn view(&self) -> Element<GenerationScreenMessage> {
         container(
             Row::new()
                 .push(
@@ -183,19 +211,19 @@ impl super::Screenish for PrintingScreen {
         .into()
     }
 
-    fn subscription(&self) -> iced::Subscription<PrintingScreenMessage> {
+    fn subscription(&self) -> iced::Subscription<GenerationScreenMessage> {
         if self.progress_bar_timeline.status().is_animating() {
             const FPS: f32 = 60.0;
             iced::time::every(Duration::from_secs_f32(1.0 / FPS))
-                .map(|_tick| PrintingScreenMessage::Tick)
+                .map(|_tick| GenerationScreenMessage::Tick)
         } else {
             iced::Subscription::none()
         }
     }
 }
 
-impl Into<super::Screen> for PrintingScreen {
+impl Into<super::Screen> for GenerationScreen {
     fn into(self) -> super::Screen {
-        super::Screen::PrintingScreen(self)
+        super::Screen::GenerationScreen(self)
     }
 }
