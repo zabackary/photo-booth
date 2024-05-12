@@ -18,10 +18,18 @@ fn progress_bar_animation(
     new_value: f32,
     duration_ms: u64,
 ) -> impl Animation<Item = f32> {
-    anim::Options::new(old_value, new_value)
-        .easing(anim::easing::quad_ease().mode(anim::easing::EasingMode::InOut))
-        .duration(Duration::from_millis(duration_ms))
-        .build()
+    anim::builder::key_frames([
+        anim::KeyFrame::new(old_value).by_percent(0.0),
+        anim::KeyFrame::new(new_value)
+            .by_duration(Duration::from_millis(
+                if cfg!(feature = "fast_animations") {
+                    300
+                } else {
+                    duration_ms
+                },
+            ))
+            .easing(anim::easing::quad_ease().mode(anim::easing::EasingMode::InOut)),
+    ])
 }
 
 #[derive(Debug)]

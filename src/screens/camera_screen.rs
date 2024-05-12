@@ -26,6 +26,10 @@ const COUNTER_RADIUS: f32 = 80.0;
 const GET_READY_FONT_SIZE: f32 = 60.0;
 
 fn get_ready_animation() -> impl Animation<Item = f32> {
+    #[cfg(not(feature = "fast_animations"))]
+    const GET_READY_ANIMATION_DURATION: u64 = 3000;
+    #[cfg(feature = "fast_animations")]
+    const GET_READY_ANIMATION_DURATION: u64 = 300;
     anim::builder::key_frames([
         anim::KeyFrame::new(0.0).by_percent(0.0),
         anim::KeyFrame::new(GET_READY_FONT_SIZE)
@@ -33,7 +37,7 @@ fn get_ready_animation() -> impl Animation<Item = f32> {
             .easing(anim::easing::quad_ease().mode(anim::easing::EasingMode::Out)),
         anim::KeyFrame::new(GET_READY_FONT_SIZE).by_percent(0.9),
         anim::KeyFrame::new(0.0)
-            .by_duration(Duration::from_millis(3000))
+            .by_duration(Duration::from_millis(GET_READY_ANIMATION_DURATION))
             .easing(anim::easing::quad_ease().mode(anim::easing::EasingMode::In)),
     ])
 }
@@ -46,7 +50,10 @@ struct CounterAnimationState {
 }
 
 fn counter_animation() -> impl Animation<Item = CounterAnimationState> {
+    #[cfg(not(feature = "fast_animations"))]
     const COUNTER_ANIMATION_DURATION: u64 = 1000;
+    #[cfg(feature = "fast_animations")]
+    const COUNTER_ANIMATION_DURATION: u64 = 100;
     let radius = anim::builder::key_frames([
         anim::KeyFrame::new(0.0).by_percent(0.0),
         anim::KeyFrame::new(COUNTER_RADIUS)
@@ -85,7 +92,10 @@ fn counter_animation() -> impl Animation<Item = CounterAnimationState> {
 }
 
 fn snap_animation() -> impl Animation<Item = f32> {
+    #[cfg(not(feature = "fast_animations"))]
     const SNAP_ANIMATION_DURATION: u64 = 500;
+    #[cfg(feature = "fast_animations")]
+    const SNAP_ANIMATION_DURATION: u64 = 100;
     anim::builder::key_frames([
         anim::KeyFrame::new(0.0).by_percent(0.0),
         anim::KeyFrame::new(1.0)
@@ -98,7 +108,10 @@ fn snap_animation() -> impl Animation<Item = f32> {
 }
 
 fn frame_size_animation() -> impl Animation<Item = f32> {
+    #[cfg(not(feature = "fast_animations"))]
     const FRAME_SIZE_ANIMATION_DURATION: u64 = 1000;
+    #[cfg(feature = "fast_animations")]
+    const FRAME_SIZE_ANIMATION_DURATION: u64 = 100;
     anim::builder::key_frames([
         anim::KeyFrame::new(1.0).by_percent(0.0),
         anim::KeyFrame::new(0.0)
