@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use anim::{Animation, Timeline};
 use iced::{
-    widget::{container, image::Handle, text, Column, Image, ProgressBar, Row, Space},
+    widget::{container, image::Handle, text, Column, ProgressBar, Space},
     Element, Length,
 };
 use image::RgbaImage;
@@ -28,7 +28,7 @@ fn progress_bar_animation(
 enum ProcessingState {
     GeneratingImage,
     GenerateImageFailed,
-    Printing,
+    GenerateImageFinished,
 }
 
 #[derive(Debug)]
@@ -128,7 +128,7 @@ impl super::Screenish for GenerationScreen {
             GenerationScreenMessage::FinishProcessImage(Some((rendered, handle))) => {
                 self.printable_image = Some(rendered);
                 self.preview_handle = Some(handle);
-                self.processing_state = ProcessingState::Printing;
+                self.processing_state = ProcessingState::GenerateImageFinished;
                 self.progress_bar_timeline =
                     progress_bar_animation(self.progress_bar_timeline.value(), 1.0, 500)
                         .to_timeline();
@@ -175,38 +175,27 @@ impl super::Screenish for GenerationScreen {
     }
     fn view(&self) -> Element<GenerationScreenMessage> {
         container(
-            Row::new()
+            Column::new()
                 .push(
-                    Column::new()
-                        .push(
-                            text(match self.processing_state {
-                                ProcessingState::GeneratingImage => "Processing your photos...",
-                                ProcessingState::Printing => "Email addresses",
-                                ProcessingState::GenerateImageFailed => {
-                                    "Failed to generate your image."
-                                }
-                            })
-                            .size(46),
-                        )
-                        .push(Space::with_height(24))
-                        .push(
-                            ProgressBar::new(0.0..=1.0, self.progress_bar_timeline.value())
-                                .height(16)
-                                .width(460),
-                        )
-                        .align_items(iced::Alignment::Center)
-                        .width(Length::Fill),
+                    text(match self.processing_state {
+                        ProcessingState::GeneratingImage => "Processing your photos...",
+                        ProcessingState::GenerateImageFinished => "Processing your photos...",
+                        ProcessingState::GenerateImageFailed => "Failed to generate your image.",
+                    })
+                    .size(46),
                 )
-                .push(Image::new(
-                    self.preview_handle
-                        .clone()
-                        .unwrap_or_else(|| Handle::from("assets/template.png")),
-                ))
+                .push(Space::with_height(24))
+                .push(
+                    ProgressBar::new(0.0..=1.0, self.progress_bar_timeline.value())
+                        .height(16)
+                        .width(460),
+                )
                 .align_items(iced::Alignment::Center)
-                .spacing(24),
+                .width(Length::Fill),
         )
         .width(Length::Fill)
         .height(Length::Fill)
+        .align_y(iced::alignment::Vertical::Center)
         .padding(20)
         .into()
     }
