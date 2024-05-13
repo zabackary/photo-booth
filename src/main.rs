@@ -115,7 +115,11 @@ impl Application for PhotoBooth {
                             .vertical_alignment(alignment::Vertical::Center),
                     ))
                     .push(Space::with_width(12))
-                    .push(button(text("Exit")).on_press(Message::ExitPressed))
+                    .push(
+                        button(text("Quit"))
+                            .on_press(Message::ExitPressed)
+                            .style(theme::Button::Text),
+                    )
                     .align_items(Alignment::Center)
                     .padding(20),
             )
