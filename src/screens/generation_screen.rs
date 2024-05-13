@@ -9,7 +9,7 @@ use iced::{
 };
 use image::RgbaImage;
 
-use crate::config::Config;
+use crate::{config::Config, utils::template_image::TEMPLATE_IMAGE};
 
 use self::image_strip_renderer::image_strip_renderer;
 
@@ -105,9 +105,7 @@ impl super::Screenish for GenerationScreen {
                         async move {
                             tokio::task::spawn_blocking(move || {
                                 let rendered = image_strip_renderer(
-                                    image::io::Reader::open("assets/template.png")
-                                        .expect("failed to read template file")
-                                        .decode()
+                                    image::load_from_memory(TEMPLATE_IMAGE)
                                         .expect("failed to decode template image")
                                         .into_rgba8(),
                                     &captured_frames,

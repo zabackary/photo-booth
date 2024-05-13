@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 mod camera_feed;
 mod config;
 mod screens;

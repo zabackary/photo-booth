@@ -5,7 +5,7 @@ use std::time::Duration;
 use crate::{
     camera_feed::{CameraFeed, CameraMessage},
     config::Config,
-    utils::{camera_button::camera_button, circle::circle},
+    utils::{camera_button::camera_button, circle::circle, template_image::TEMPLATE_IMAGE},
 };
 use anim::{Animation, Timeline};
 use iced::{
@@ -145,6 +145,8 @@ pub(crate) struct CameraScreen {
     counter_timeline: Timeline<CounterAnimationState>,
     snap_timeline: Timeline<f32>,
     frame_size_timeline: Timeline<f32>,
+
+    frame_image_handle: Handle,
 }
 
 #[derive(Clone, Debug)]
@@ -195,6 +197,8 @@ impl super::Screenish for CameraScreen {
                 counter_timeline: counter_animation().to_timeline(),
                 frame_size_timeline: frame_size_animation().to_timeline(),
                 snap_timeline: snap_animation().to_timeline(),
+
+                frame_image_handle: Handle::from_memory(TEMPLATE_IMAGE),
             },
             feed_command.map(CameraScreenMessage::CameraFeedMessage),
         )
@@ -394,7 +398,7 @@ impl super::Screenish for CameraScreen {
                         .offset(0.0),
                     )
                     .push(element_strip_renderer(
-                        "assets/template.png".into(),
+                        self.frame_image_handle.clone(),
                         &self.captured_frames,
                         &self.config.template,
                         if matches!(

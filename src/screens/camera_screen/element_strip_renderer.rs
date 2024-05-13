@@ -40,7 +40,7 @@ pub(super) fn element_strip_renderer<'a>(
                 };
                 // same as above for the .clone()
                 let frame = iced::widget::Image::new(frame_handle.clone())
-                    .content_fit(iced::ContentFit::Cover) // TODO: make sure this matches up with the `image`-based renderer
+                    .content_fit(iced::ContentFit::Cover)
                     .width(template_frame.width * x_factor * animation_factor)
                     .height(template_frame.height * y_factor * animation_factor);
                 element = floating_element(
