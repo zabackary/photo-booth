@@ -1,5 +1,6 @@
 {
   "name": "name Photo Booth",
+  "emailExampleDomain": "gmail.com",
   "fullscreen": false,
   "template": {
     "width": 400,

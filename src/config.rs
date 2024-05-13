@@ -6,6 +6,8 @@ pub(crate) struct Config {
     pub name: String,
     pub fullscreen: bool,
     pub template: Template,
+    #[serde(rename = "emailExampleDomain")]
+    pub email_example_domain: String,
 }
 
 impl Config {
