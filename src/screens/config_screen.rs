@@ -126,19 +126,6 @@ impl super::Screenish for ConfigScreen {
                     .width(250),
                 )
                 .push(Space::with_height(12))
-                .push(text("Printer").size(18))
-                .push(
-                    combo_box(
-                        &self.cameras,
-                        "Search printers...",
-                        self.selected_camera.as_ref(),
-                        ConfigScreenMessage::CameraSelected,
-                    )
-                    .on_option_hovered(ConfigScreenMessage::OptionHovered)
-                    .on_close(ConfigScreenMessage::Closed)
-                    .width(250),
-                )
-                .push(Space::with_height(12))
                 .push(
                     button(
                         text("Start photo booth")
