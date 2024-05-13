@@ -7,6 +7,7 @@ edition = "2021"
 fast_animations = [] # very fast animations for debugging faster
 
 [dependencies]
+email_address = "0.2.4"
 iced = { version = "0.12.1", features = ["image", "tokio", "debug"] }
 iced_aw = { version = "0.8.0", features = ["drop_down"] }
 image = "0.24.8"
