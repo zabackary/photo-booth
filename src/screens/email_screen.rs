@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{str::FromStr, time::Duration};
 
 use email_address::EmailAddress;
 use iced::{
@@ -128,15 +128,31 @@ impl super::Screenish for EmailScreen {
                             self.current_email_address = String::new();
                         }
                     } else if self.email_addresses.len() > 0 {
-                        // TODO: move on to next screen
-                    } else {
-                        let flags = super::camera_screen::CameraScreenFlags {
+                        // Upload the photos to the server
+                        let flags = super::sending_screen::SendingScreenFlags {
                             config: self.config.clone(),
                             index: self.index.clone(),
+
+                            image: self.printable_image.clone(),
                         };
                         return iced::Command::perform(async {}, |_| {
                             super::ScreenMessage::TransitionToScreen(
-                                super::ScreenFlags::CameraScreenFlags(flags),
+                                super::ScreenFlags::SendingScreenFlags(flags),
+                            )
+                        });
+                    } else {
+                        // Cancel and discard the photos
+                        let flags = super::alert_screen::AlertScreenFlags {
+                            config: self.config.clone(),
+                            index: self.index.clone(),
+
+                            alert_title: "Successfully deleted".into(),
+                            alert_content: "Your photos were deleted without being saved and were not uploaded to our sever".into(),
+                            timeout: Duration::from_millis(1500)
+                        };
+                        return iced::Command::perform(async {}, |_| {
+                            super::ScreenMessage::TransitionToScreen(
+                                super::ScreenFlags::AlertScreenFlags(flags),
                             )
                         });
                     }

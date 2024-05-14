@@ -2,26 +2,35 @@ use iced::{Element, Subscription};
 
 use crate::config::Config;
 
+mod alert_screen;
 mod camera_screen;
 mod config_screen;
 mod email_screen;
+mod error_screen;
 mod generation_screen;
+mod sending_screen;
 
 #[derive(Debug, Clone)]
 pub enum ScreenMessage {
     TransitionToScreen(ScreenFlags),
+    AlertScreenMessage(alert_screen::AlertScreenMessage),
     CameraScreenMessage(camera_screen::CameraScreenMessage),
     ConfigScreenMessage(config_screen::ConfigScreenMessage),
-    GenerationScreenMessage(generation_screen::GenerationScreenMessage),
     EmailScreenMessage(email_screen::EmailScreenMessage),
+    ErrorScreenMessage(error_screen::ErrorScreenMessage),
+    GenerationScreenMessage(generation_screen::GenerationScreenMessage),
+    SendingScreenMessage(sending_screen::SendingScreenMessage),
 }
 
 #[derive(Debug, Clone)]
 pub enum ScreenFlags {
+    AlertScreenFlags(alert_screen::AlertScreenFlags),
     CameraScreenFlags(camera_screen::CameraScreenFlags),
     ConfigScreenFlags(config_screen::ConfigScreenFlags),
-    GenerationScreenFlags(generation_screen::GenerationScreenFlags),
     EmailScreenFlags(email_screen::EmailScreenFlags),
+    ErrorScreenFlags(error_screen::ErrorScreenFlags),
+    GenerationScreenFlags(generation_screen::GenerationScreenFlags),
+    SendingScreenFlags(sending_screen::SendingScreenFlags),
 }
 
 impl Into<(Screen, Option<ScreenMessage>)> for ScreenFlags {
@@ -55,6 +64,27 @@ impl Into<(Screen, Option<ScreenMessage>)> for ScreenFlags {
                     message.map(ScreenMessage::EmailScreenMessage),
                 )
             }
+            ScreenFlags::AlertScreenFlags(flags) => {
+                let (screen, message) = alert_screen::AlertScreen::new(flags);
+                (
+                    Screen::AlertScreen(screen),
+                    message.map(ScreenMessage::AlertScreenMessage),
+                )
+            }
+            ScreenFlags::ErrorScreenFlags(flags) => {
+                let (screen, message) = error_screen::ErrorScreen::new(flags);
+                (
+                    Screen::ErrorScreen(screen),
+                    message.map(ScreenMessage::ErrorScreenMessage),
+                )
+            }
+            ScreenFlags::SendingScreenFlags(flags) => {
+                let (screen, message) = sending_screen::SendingScreen::new(flags);
+                (
+                    Screen::SendingScreen(screen),
+                    message.map(ScreenMessage::SendingScreenMessage),
+                )
+            }
         }
     }
 }
@@ -65,10 +95,13 @@ pub fn initial_screen(config: Config) -> ScreenFlags {
 
 #[derive(Debug)]
 pub enum Screen {
+    AlertScreen(alert_screen::AlertScreen),
     CameraScreen(camera_screen::CameraScreen),
     ConfigScreen(config_screen::ConfigScreen),
-    GenerationScreen(generation_screen::GenerationScreen),
     EmailScreen(email_screen::EmailScreen),
+    ErrorScreen(error_screen::ErrorScreen),
+    GenerationScreen(generation_screen::GenerationScreen),
+    SendingScreen(sending_screen::SendingScreen),
 }
 
 #[derive(Debug)]
@@ -102,6 +135,15 @@ impl Screen {
             (Screen::EmailScreen(screen), ScreenMessage::EmailScreenMessage(msg)) => {
                 ScreenUpdateOutcome::Command(screen.update(msg).map(|x| x.into()))
             }
+            (Screen::AlertScreen(screen), ScreenMessage::AlertScreenMessage(msg)) => {
+                ScreenUpdateOutcome::Command(screen.update(msg).map(|x| x.into()))
+            }
+            (Screen::ErrorScreen(screen), ScreenMessage::ErrorScreenMessage(msg)) => {
+                ScreenUpdateOutcome::Command(screen.update(msg).map(|x| x.into()))
+            }
+            (Screen::SendingScreen(screen), ScreenMessage::SendingScreenMessage(msg)) => {
+                ScreenUpdateOutcome::Command(screen.update(msg).map(|x| x.into()))
+            }
             _ => {
                 // don't do anything
                 ScreenUpdateOutcome::Command(iced::Command::none())
@@ -111,19 +153,25 @@ impl Screen {
 
     pub fn subscription(&self) -> Subscription<ScreenMessage> {
         match self {
+            Screen::AlertScreen(screen) => screen.subscription().map(|x| x.into()),
             Screen::CameraScreen(screen) => screen.subscription().map(|x| x.into()),
             Screen::ConfigScreen(screen) => screen.subscription().map(|x| x.into()),
-            Screen::GenerationScreen(screen) => screen.subscription().map(|x| x.into()),
             Screen::EmailScreen(screen) => screen.subscription().map(|x| x.into()),
+            Screen::ErrorScreen(screen) => screen.subscription().map(|x| x.into()),
+            Screen::GenerationScreen(screen) => screen.subscription().map(|x| x.into()),
+            Screen::SendingScreen(screen) => screen.subscription().map(|x| x.into()),
         }
     }
 
     pub fn view(&self) -> Element<ScreenMessage> {
         match self {
+            Screen::AlertScreen(screen) => screen.view().map(|x| x.into()),
             Screen::CameraScreen(screen) => screen.view().map(|x| x.into()),
             Screen::ConfigScreen(screen) => screen.view().map(|x| x.into()),
-            Screen::GenerationScreen(screen) => screen.view().map(|x| x.into()),
             Screen::EmailScreen(screen) => screen.view().map(|x| x.into()),
+            Screen::ErrorScreen(screen) => screen.view().map(|x| x.into()),
+            Screen::GenerationScreen(screen) => screen.view().map(|x| x.into()),
+            Screen::SendingScreen(screen) => screen.view().map(|x| x.into()),
         }
     }
 }

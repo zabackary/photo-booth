@@ -40,3 +40,24 @@ impl StyleSheet for RoundedBoxContainerStyle {
         }
     }
 }
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct RoundedErrorBoxContainerStyle {}
+
+impl StyleSheet for RoundedErrorBoxContainerStyle {
+    type Style = iced::Theme;
+
+    fn appearance(&self, style: &Self::Style) -> iced::widget::container::Appearance {
+        let palette = style.extended_palette();
+        iced::widget::container::Appearance {
+            border: Border {
+                radius: Radius::from(12),
+                width: 2.0,
+                color: Color::TRANSPARENT,
+            },
+            background: Some(palette.danger.weak.color.into()),
+            text_color: Some(palette.danger.weak.text),
+            ..Default::default()
+        }
+    }
+}
