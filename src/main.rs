@@ -26,7 +26,7 @@ pub fn main() -> iced::Result {
             ..window::Settings::default()
         },
         flags: config,
-        antialiasing: false,
+        antialiasing: true,
         default_font: Font::DEFAULT,
         fonts: vec![],
         id: None,
