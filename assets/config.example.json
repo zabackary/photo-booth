@@ -1,7 +1,10 @@
 {
   "name": "name Photo Booth",
-  "emailExampleDomain": "gmail.com",
   "fullscreen": false,
+  "emailExampleDomain": "gmail.com",
+  "emailWhitelistedDomains": ["*"],
+  "emailBlacklistedDomains": [],
+  "emailValidationFailedHelp": "This event is restricting email addresses to a limited number of domains. Check the part after the @ symbol.",
   "template": {
     "width": 400,
     "height": 1200,

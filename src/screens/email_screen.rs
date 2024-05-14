@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use email_address::EmailAddress;
 use iced::{
     theme,
@@ -16,6 +18,27 @@ use crate::{
 
 const MAX_RECIPIENT_NUMBER: usize = 4;
 
+fn domain_allowed(domain: &str, config: &Config) -> bool {
+    for whitelisted_domain in &config.email_whitelisted_domains {
+        if whitelisted_domain == domain || whitelisted_domain == "*" {
+            return true;
+        }
+    }
+    for blacklisted_domain in &config.email_blacklisted_domains {
+        if blacklisted_domain == domain || blacklisted_domain == "*" {
+            return false;
+        }
+    }
+    return true;
+}
+
+#[derive(Debug)]
+enum EmailAddressValidity {
+    Invalid,
+    EmailDomainBlacklisted,
+    Valid,
+}
+
 #[derive(Debug)]
 pub(crate) struct EmailScreen {
     config: Config,
@@ -25,7 +48,7 @@ pub(crate) struct EmailScreen {
     printable_image: RgbaImage,
 
     email_addresses: Vec<String>,
-    current_email_address_valid: bool,
+    current_email_address_validity: EmailAddressValidity,
     current_email_address: String,
 
     has_focused_email_field: bool,
@@ -66,7 +89,7 @@ impl super::Screenish for EmailScreen {
                 printable_image: flags.printable_image,
 
                 email_addresses: Vec::new(),
-                current_email_address_valid: false,
+                current_email_address_validity: EmailAddressValidity::Invalid,
                 current_email_address: String::new(),
                 has_focused_email_field: false,
             },
@@ -79,14 +102,27 @@ impl super::Screenish for EmailScreen {
                 EmailScreenMessage::Tick => iced::Command::none(),
                 EmailScreenMessage::CurrentEmailAddressChanged(new_address) => {
                     if self.email_addresses.len() < MAX_RECIPIENT_NUMBER {
-                        self.current_email_address_valid = EmailAddress::is_valid(&new_address);
+                        self.current_email_address_validity =
+                            match EmailAddress::from_str(&new_address) {
+                                Ok(parsed) => {
+                                    if domain_allowed(parsed.domain(), &self.config) {
+                                        EmailAddressValidity::Valid
+                                    } else {
+                                        EmailAddressValidity::EmailDomainBlacklisted
+                                    }
+                                }
+                                Err(..) => EmailAddressValidity::Invalid,
+                            };
                         self.current_email_address = new_address;
                     };
                     iced::Command::none()
                 }
                 EmailScreenMessage::CurrentEmailAddressSubmitted => {
                     if self.current_email_address.len() > 0 {
-                        if self.current_email_address_valid {
+                        if matches!(
+                            self.current_email_address_validity,
+                            EmailAddressValidity::Valid
+                        ) {
                             self.email_addresses
                                 .push(self.current_email_address.clone());
                             self.current_email_address = String::new();
@@ -170,16 +206,14 @@ impl super::Screenish for EmailScreen {
                                             )
                                         )
                                         .style(
-                                            if self.current_email_address.len() > 0 {
-                                                iced::theme::Button::Secondary
-                                            } else if self.email_addresses.len() > 0 {
+                                            if self.current_email_address.len() > 0 || self.email_addresses.len() > 0 {
                                                 iced::theme::Button::Primary
                                             } else {
                                                 iced::theme::Button::Destructive
                                             }
                                         )
                                         .on_press_maybe(
-                                            if self.current_email_address.len() == 0 || self.current_email_address_valid {
+                                            if self.current_email_address.len() == 0 || matches!(self.current_email_address_validity, EmailAddressValidity::Valid) {
                                                 Some(EmailScreenMessage::CurrentEmailAddressSubmitted)
                                             } else {
                                                 None
@@ -192,12 +226,14 @@ impl super::Screenish for EmailScreen {
                                 text(
                                     if self.email_addresses.len() >= MAX_RECIPIENT_NUMBER {
                                         "You have reached the maximum number of recipients. Press [Enter] to have the photo emailed to the above accounts."
-                                    } else if self.current_email_address.len() > 0 && !self.current_email_address_valid {
-                                        "By entering your email address(es), you consent to having your photos processed by the system and saved on our servers. Please enter a valid email address."
+                                    } else if self.current_email_address.len() > 0 && matches!(self.current_email_address_validity, EmailAddressValidity::Invalid) {
+                                        "Please enter a valid email address."
+                                    } else if self.current_email_address.len() > 0 && matches!(self.current_email_address_validity, EmailAddressValidity::EmailDomainBlacklisted) {
+                                        &self.config.email_validation_failed_help
                                     } else if self.current_email_address.len() > 0 {
-                                        "By entering your email address(es), you consent to having your photos processed by the system and saved on our servers."
+                                        "Everything looks good. Note that by pressing [Enter] and adding your email address to the list, you consent to having your photos processed by the system and saved on our servers."
                                     } else if self.email_addresses.len() > 0 {
-                                        "You may add more addresses to send the photo to. Press [Enter] to have the photo emailed to the above accounts, or type another one."
+                                        "You may add more addresses to send the photo to. Type another one, or press [Enter] to have the photo emailed to the above accounts."
                                     } else {
                                         "Enter your email address so we can send you the photos you just took. By entering your email address(es), you consent to having your photos processed by the system and saved on our servers. Press [Enter] now to cancel."
                                     }

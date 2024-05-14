@@ -8,6 +8,12 @@ pub(crate) struct Config {
     pub template: Template,
     #[serde(rename = "emailExampleDomain")]
     pub email_example_domain: String,
+    #[serde(rename = "emailWhitelistedDomains")]
+    pub email_whitelisted_domains: Vec<String>,
+    #[serde(rename = "emailBlacklistedDomains")]
+    pub email_blacklisted_domains: Vec<String>,
+    #[serde(rename = "emailValidationFailedHelp")]
+    pub email_validation_failed_help: String,
 }
 
 impl Config {
