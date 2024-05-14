@@ -442,6 +442,13 @@ impl super::Screenish for CameraScreen {
             self.feed
                 .subscription()
                 .map(CameraScreenMessage::CameraFeedMessage),
+            iced::keyboard::on_key_press(|key, _modifiers| match key {
+                iced::keyboard::Key::Named(iced::keyboard::key::Named::Space)
+                | iced::keyboard::Key::Named(iced::keyboard::key::Named::Enter) => {
+                    Some(CameraScreenMessage::CaptureButtonPressed)
+                }
+                _ => None,
+            }),
             if self.counter_timeline.status().is_animating()
                 || self.snap_timeline.status().is_animating()
                 || self.frame_size_timeline.status().is_animating()
