@@ -201,7 +201,7 @@ impl super::Screenish for EmailScreen {
                                                 } else if self.email_addresses.len() > 0 {
                                                     "Press [Enter] to finish"
                                                 } else {
-                                                    "Press [Enter] to cancel and delete your photos"
+                                                    "Press [Enter] to cancel"
                                                 }
                                             )
                                         )
@@ -235,7 +235,7 @@ impl super::Screenish for EmailScreen {
                                     } else if self.email_addresses.len() > 0 {
                                         "You may add more addresses to send the photo to. Type another one, or press [Enter] to have the photo emailed to the above accounts."
                                     } else {
-                                        "Enter your email address so we can send you the photos you just took. By entering your email address(es), you consent to having your photos processed by the system and saved on our servers. Press [Enter] now to cancel."
+                                        "Enter your email address so we can send you the photos you just took. By entering your email address(es), you consent to having your photos processed by the system and saved on our servers. If you do not wish for this to happen, press [Enter] now to cancel and discard your photos."
                                     }
                                 )
                             )
