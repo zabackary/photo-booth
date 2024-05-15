@@ -1,6 +1,6 @@
 use iced::{
     theme,
-    widget::{button, container, text, Column, Space},
+    widget::{button, container, text, Column},
     Element, Length,
 };
 
@@ -71,10 +71,9 @@ impl super::Screenish for ErrorScreen {
         container(
             container(
                 Column::new()
-                    .push(text(&self.error_title).size(46))
-                    .push(Space::with_height(24))
-                    .push(text(&self.error_content).size(32))
-                    .push(Space::with_height(24))
+                    .push(text(&self.error_title).size(36))
+                    .push(text(&self.error_content).size(26))
+                    .padding(14)
                     .push(
                         button(text("Press [Space] to close error"))
                             .style(theme::Button::Destructive)
@@ -85,7 +84,8 @@ impl super::Screenish for ErrorScreen {
             )
             .style(theme::Container::Custom(Box::new(
                 RoundedErrorBoxContainerStyle {},
-            ))),
+            )))
+            .padding(24),
         )
         .width(Length::Fill)
         .height(Length::Fill)

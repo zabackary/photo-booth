@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use iced::{
     theme,
-    widget::{container, text, Column, Space},
+    widget::{container, text, Column},
     Element, Length,
 };
 
@@ -76,15 +76,15 @@ impl super::Screenish for AlertScreen {
         container(
             container(
                 Column::new()
-                    .push(text(&self.alert_title).size(46))
-                    .push(Space::with_height(24))
-                    .push(text(&self.alert_content).size(32))
+                    .push(text(&self.alert_title).size(36))
+                    .push(text(&self.alert_content).size(26))
                     .align_items(iced::Alignment::Center)
                     .width(Length::Fill),
             )
             .style(theme::Container::Custom(Box::new(
                 RoundedBoxContainerStyle {},
-            ))),
+            )))
+            .padding(24),
         )
         .width(Length::Fill)
         .height(Length::Fill)
