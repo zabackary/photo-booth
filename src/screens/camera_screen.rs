@@ -336,7 +336,18 @@ impl super::Screenish for CameraScreen {
                         floating_element(
                             floating_element(
                                 self.feed.view().width(Length::Fill).height(Length::Fill),
-                                camera_button().on_press(CameraScreenMessage::CaptureButtonPressed),
+                                Row::new()
+                                    .push(
+                                        text("Press [Space] to start taking pictures!")
+                                            .size(28)
+                                            .vertical_alignment(iced::alignment::Vertical::Center),
+                                    )
+                                    .push(
+                                        camera_button()
+                                            .on_press(CameraScreenMessage::CaptureButtonPressed),
+                                    )
+                                    .spacing(12)
+                                    .align_items(Alignment::Center),
                             )
                             .hide(!matches!(
                                 self.capture_sequence_state,
