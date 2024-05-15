@@ -84,10 +84,12 @@ impl super::Screenish for AlertScreen {
             .style(theme::Container::Custom(Box::new(
                 RoundedBoxContainerStyle {},
             )))
+            .max_width(680)
             .padding(24),
         )
         .width(Length::Fill)
         .height(Length::Fill)
+        .align_x(iced::alignment::Horizontal::Center)
         .align_y(iced::alignment::Vertical::Center)
         .padding(20)
         .into()

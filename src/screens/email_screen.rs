@@ -192,76 +192,82 @@ impl super::Screenish for EmailScreen {
             Row::new()
                 .push(
                     container(
+                    container(
                         Column::new()
-                            .push(text("Enter your emails").size(36))
-                            .push(email_list)
-                            .push(
-                                Row::new()
-                                    .push(
-                                        TextInput::new(
-                                            &if self.email_addresses.len() < MAX_RECIPIENT_NUMBER {
-                                                format!("my_email@{}", &self.config.email_example_domain)
-                                            } else {
-                                                "Maximum number of recipients reached".into()
-                                            },
-                                            &self.current_email_address
-                                        )
-                                        .on_input(EmailScreenMessage::CurrentEmailAddressChanged)
-                                        .on_submit(EmailScreenMessage::CurrentEmailAddressSubmitted)
-                                        .width(Length::Fill)
-                                    )
-                                    .push(
-                                        button(
-                                            text(
-                                                if self.current_email_address.len() > 0 {
-                                                    "Press [Enter] to add email address"
-                                                } else if self.email_addresses.len() > 0 {
-                                                    "Press [Enter] to finish"
+                                .push(text("Enter your emails").size(36))
+                                .push(email_list)
+                                .push(
+                                    Row::new()
+                                        .push(
+                                            TextInput::new(
+                                                &if self.email_addresses.len() < MAX_RECIPIENT_NUMBER {
+                                                    format!("my_email@{}", &self.config.email_example_domain)
                                                 } else {
-                                                    "Press [Enter] to cancel"
+                                                    "Maximum number of recipients reached".into()
+                                                },
+                                                &self.current_email_address
+                                            )
+                                            .on_input(EmailScreenMessage::CurrentEmailAddressChanged)
+                                            .on_submit(EmailScreenMessage::CurrentEmailAddressSubmitted)
+                                            .width(Length::Fill)
+                                        )
+                                        .push(
+                                            button(
+                                                text(
+                                                    if self.current_email_address.len() > 0 {
+                                                        "Press [Enter] to add email address"
+                                                    } else if self.email_addresses.len() > 0 {
+                                                        "Press [Enter] to finish"
+                                                    } else {
+                                                        "Press [Enter] to cancel"
+                                                    }
+                                                )
+                                            )
+                                            .style(
+                                                if self.current_email_address.len() > 0 || self.email_addresses.len() > 0 {
+                                                    iced::theme::Button::Primary
+                                                } else {
+                                                    iced::theme::Button::Destructive
+                                                }
+                                            )
+                                            .on_press_maybe(
+                                                if self.current_email_address.len() == 0 || matches!(self.current_email_address_validity, EmailAddressValidity::Valid) {
+                                                    Some(EmailScreenMessage::CurrentEmailAddressSubmitted)
+                                                } else {
+                                                    None
                                                 }
                                             )
                                         )
-                                        .style(
-                                            if self.current_email_address.len() > 0 || self.email_addresses.len() > 0 {
-                                                iced::theme::Button::Primary
-                                            } else {
-                                                iced::theme::Button::Destructive
-                                            }
-                                        )
-                                        .on_press_maybe(
-                                            if self.current_email_address.len() == 0 || matches!(self.current_email_address_validity, EmailAddressValidity::Valid) {
-                                                Some(EmailScreenMessage::CurrentEmailAddressSubmitted)
-                                            } else {
-                                                None
-                                            }
-                                        )
-                                    )
-                                    .spacing(8)
-                            )
-                            .push(
-                                text(
-                                    if self.email_addresses.len() >= MAX_RECIPIENT_NUMBER {
-                                        "You have reached the maximum number of recipients. Press [Enter] to have the photo emailed to the above accounts."
-                                    } else if self.current_email_address.len() > 0 && matches!(self.current_email_address_validity, EmailAddressValidity::Invalid) {
-                                        "Please enter a valid email address."
-                                    } else if self.current_email_address.len() > 0 && matches!(self.current_email_address_validity, EmailAddressValidity::EmailDomainBlacklisted) {
-                                        &self.config.email_validation_failed_help
-                                    } else if self.current_email_address.len() > 0 {
-                                        "Everything looks good. Note that by pressing [Enter] and adding your email address to the list, you consent to having your photos processed by the system and saved on our servers."
-                                    } else if self.email_addresses.len() > 0 {
-                                        "You may add more addresses to send the photo to. Type another one, or press [Enter] to have the photo emailed to the above accounts."
-                                    } else {
-                                        "Enter your email address so we can send you the photos you just took. By entering your email address(es), you consent to having your photos processed by the system and saved on our servers. If you do not wish for this to happen, press [Enter] now to cancel and discard your photos."
-                                    }
+                                        .spacing(8)
                                 )
-                            )
-                            .width(Length::Fill)
-                            .spacing(10),
+                                .push(
+                                    text(
+                                        if self.email_addresses.len() >= MAX_RECIPIENT_NUMBER {
+                                            "You have reached the maximum number of recipients. Press [Enter] to have the photo emailed to the above accounts."
+                                        } else if self.current_email_address.len() > 0 && matches!(self.current_email_address_validity, EmailAddressValidity::Invalid) {
+                                            "Please enter a valid email address."
+                                        } else if self.current_email_address.len() > 0 && matches!(self.current_email_address_validity, EmailAddressValidity::EmailDomainBlacklisted) {
+                                            &self.config.email_validation_failed_help
+                                        } else if self.current_email_address.len() > 0 {
+                                            "Everything looks good. Note that by pressing [Enter] and adding your email address to the list, you consent to having your photos processed by the system and saved on our servers."
+                                        } else if self.email_addresses.len() > 0 {
+                                            "You may add more addresses to send the photo to. Type another one, or press [Enter] to have the photo emailed to the above accounts."
+                                        } else {
+                                            "Enter your email address so we can send you the photos you just took. By entering your email address(es), you consent to having your photos processed by the system and saved on our servers. If you do not wish for this to happen, press [Enter] now to cancel and discard your photos."
+                                        }
+                                    )
+                                )
+                                .width(Length::Fill)
+                                .spacing(10),
                         )
                         .style(theme::Container::Custom(Box::new(RoundedBoxContainerStyle {})))
                         .padding(16)
+                        .max_width(680)
+                    )
+                    .width(Length::Fill)
+                    .align_x(iced::alignment::Horizontal::Center)
                 )
+                // .push(Space::with_height(0))
                 .push(Image::new(self.preview_handle.clone()))
                 .align_items(iced::Alignment::Center)
                 .spacing(24),
