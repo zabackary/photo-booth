@@ -134,6 +134,7 @@ impl super::Screenish for EmailScreen {
                             index: self.index.clone(),
 
                             image: self.printable_image.clone(),
+                            addresses: self.email_addresses.clone(),
                         };
                         return iced::Command::perform(async {}, |_| {
                             super::ScreenMessage::TransitionToScreen(
@@ -148,7 +149,7 @@ impl super::Screenish for EmailScreen {
 
                             alert_title: "Successfully deleted".into(),
                             alert_content: "Your photos were deleted without being saved and were not uploaded to our sever".into(),
-                            timeout: Duration::from_millis(1500)
+                            timeout: Duration::from_millis(4000)
                         };
                         return iced::Command::perform(async {}, |_| {
                             super::ScreenMessage::TransitionToScreen(

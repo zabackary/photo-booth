@@ -14,6 +14,8 @@ pub(crate) struct Config {
     pub email_blacklisted_domains: Vec<String>,
     #[serde(rename = "emailValidationFailedHelp")]
     pub email_validation_failed_help: String,
+    #[serde(rename = "emailServerEndpoint")]
+    pub email_server_endpoint: String,
 }
 
 impl Config {
