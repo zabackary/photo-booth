@@ -9,7 +9,8 @@ use crate::{
 };
 use anim::{Animation, Timeline};
 use iced::{
-    widget::{container, image::Handle, space, text, Row},
+    theme,
+    widget::{container, image::Handle, space, text, Column, Row},
     Alignment, Color, Element, Length,
 };
 use iced_aw::floating_element;
@@ -334,27 +335,34 @@ impl super::Screenish for CameraScreen {
                 Row::new()
                     .push(
                         floating_element(
-                            floating_element(
-                                self.feed.view().width(Length::Fill).height(Length::Fill),
-                                Row::new()
-                                    .push(
-                                        text("Press [Space] to start taking pictures!")
-                                            .size(28)
-                                            .vertical_alignment(iced::alignment::Vertical::Center),
-                                    )
-                                    .push(
-                                        camera_button()
-                                            .on_press(CameraScreenMessage::CaptureButtonPressed),
-                                    )
-                                    .spacing(12)
-                                    .align_items(Alignment::Center),
-                            )
-                            .hide(!matches!(
-                                self.capture_sequence_state,
-                                CaptureSequenceState::None
-                            ))
-                            .anchor(floating_element::Anchor::SouthEast)
-                            .offset(8.0),
+                            Column::new()
+                                .push(self.feed.view().width(Length::Fill).height(Length::Fill))
+                                .push_maybe(
+                                    if matches!(
+                                        self.capture_sequence_state,
+                                        CaptureSequenceState::None
+                                    ) {
+                                        Some(
+                                            Row::new()
+                                                .push(
+                                                    text("Press [Space] to start taking pictures!")
+                                                        .size(34)
+                                                        .vertical_alignment(
+                                                            iced::alignment::Vertical::Center,
+                                                        ),
+                                                )
+                                                .push(camera_button().on_press(
+                                                    CameraScreenMessage::CaptureButtonPressed,
+                                                ))
+                                                .spacing(12)
+                                                .align_items(Alignment::Center),
+                                        )
+                                    } else {
+                                        None
+                                    },
+                                )
+                                .spacing(16)
+                                .align_items(Alignment::End),
                             match self.capture_sequence_state {
                                 CaptureSequenceState::FramesCapture(
                                     FrameCaptureSequenceState::Counter(counter),
@@ -388,17 +396,19 @@ impl super::Screenish for CameraScreen {
                                     )
                                     .offset(0.0),
                                 ),
-                                CaptureSequenceState::GetReady => {
-                                    container(text("Get ready").size(if get_ready_size > 0.0 {
-                                        get_ready_size
-                                    } else {
-                                        f32::MIN_POSITIVE
-                                    }))
-                                    .width(Length::Fill)
-                                    .height(Length::Fill)
-                                    .align_x(iced::alignment::Horizontal::Center)
-                                    .align_y(iced::alignment::Vertical::Center)
-                                }
+                                CaptureSequenceState::GetReady => container(
+                                    text("Get ready")
+                                        .size(if get_ready_size > 0.0 {
+                                            get_ready_size
+                                        } else {
+                                            f32::MIN_POSITIVE
+                                        })
+                                        .style(theme::Text::Color(Color::from_rgb8(255, 255, 255))),
+                                )
+                                .width(Length::Fill)
+                                .height(Length::Fill)
+                                .align_x(iced::alignment::Horizontal::Center)
+                                .align_y(iced::alignment::Vertical::Center),
                                 _ => container(space::Space::new(0, 0)),
                             }
                             .width(Length::Fill)
