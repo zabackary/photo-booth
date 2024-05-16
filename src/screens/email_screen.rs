@@ -194,7 +194,7 @@ impl super::Screenish for EmailScreen {
                     container(
                     container(
                         Column::new()
-                                .push(text("Enter your emails").size(36))
+                                .push(text("Enter your emails").size(42))
                                 .push(email_list)
                                 .push(
                                     Row::new()
@@ -210,6 +210,7 @@ impl super::Screenish for EmailScreen {
                                             .on_input(EmailScreenMessage::CurrentEmailAddressChanged)
                                             .on_submit(EmailScreenMessage::CurrentEmailAddressSubmitted)
                                             .width(Length::Fill)
+                                            .size(28)
                                         )
                                         .push(
                                             button(
@@ -222,6 +223,7 @@ impl super::Screenish for EmailScreen {
                                                         "Press [Enter] to cancel"
                                                     }
                                                 )
+                                                .size(24)
                                             )
                                             .style(
                                                 if self.current_email_address.len() > 0 || self.email_addresses.len() > 0 {
@@ -239,6 +241,7 @@ impl super::Screenish for EmailScreen {
                                             )
                                         )
                                         .spacing(8)
+                                        .align_items(iced::Alignment::Center)
                                 )
                                 .push(
                                     text(
@@ -256,13 +259,14 @@ impl super::Screenish for EmailScreen {
                                             "Enter your email address so we can send you the photos you just took. By entering your email address(es), you consent to having your photos processed by the system and saved on our servers. If you do not wish for this to happen, press [Enter] now to cancel and discard your photos."
                                         }
                                     )
+                                    .size(22)
                                 )
                                 .width(Length::Fill)
                                 .spacing(10),
                         )
                         .style(theme::Container::Custom(Box::new(RoundedBoxContainerStyle {})))
                         .padding(16)
-                        .max_width(680)
+                        .max_width(840)
                     )
                     .width(Length::Fill)
                     .align_x(iced::alignment::Horizontal::Center)
