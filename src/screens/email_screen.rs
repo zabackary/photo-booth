@@ -175,7 +175,9 @@ impl super::Screenish for EmailScreen {
                     .iter()
                     .map(|address| {
                         container(
-                            text(address).horizontal_alignment(iced::alignment::Horizontal::Center),
+                            text(address)
+                                .horizontal_alignment(iced::alignment::Horizontal::Center)
+                                .size(22),
                         )
                         .style(theme::Container::Custom(Box::new(
                             OutlinedContainerStyle {},
