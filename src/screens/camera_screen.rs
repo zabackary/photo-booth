@@ -5,7 +5,7 @@ use std::time::Duration;
 use crate::{
     camera_feed::{CameraFeed, CameraMessage},
     config::Config,
-    utils::{camera_button::camera_button, circle::circle, template_image::TEMPLATE_IMAGE},
+    utils::{circle::circle, template_image::TEMPLATE_IMAGE},
 };
 use anim::{Animation, Timeline};
 use iced::{
@@ -343,26 +343,18 @@ impl super::Screenish for CameraScreen {
                                         CaptureSequenceState::None
                                     ) {
                                         Some(
-                                            Row::new()
-                                                .push(
-                                                    text("Press [Space] to start taking pictures!")
-                                                        .size(34)
-                                                        .vertical_alignment(
-                                                            iced::alignment::Vertical::Center,
-                                                        ),
-                                                )
-                                                .push(camera_button().on_press(
-                                                    CameraScreenMessage::CaptureButtonPressed,
-                                                ))
-                                                .spacing(12)
-                                                .align_items(Alignment::Center),
+                                            text("Press [Space] to start taking pictures!")
+                                                .size(34)
+                                                .vertical_alignment(
+                                                    iced::alignment::Vertical::Center,
+                                                ),
                                         )
                                     } else {
                                         None
                                     },
                                 )
                                 .spacing(16)
-                                .align_items(Alignment::End),
+                                .align_items(Alignment::Center),
                             match self.capture_sequence_state {
                                 CaptureSequenceState::FramesCapture(
                                     FrameCaptureSequenceState::Counter(counter),
