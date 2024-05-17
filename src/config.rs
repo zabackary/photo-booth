@@ -45,6 +45,8 @@ pub(crate) struct Config {
     pub email_validation_failed_help: String,
     #[serde(rename = "emailServerEndpoint")]
     pub email_server_endpoint: String,
+    #[serde(rename = "emailMaxRecipients")]
+    pub email_max_recipients: u32,
     #[serde(rename = "mirrorPreview")]
     pub mirror_preview: bool,
     #[serde(rename = "mirrorOutput")]

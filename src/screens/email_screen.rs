@@ -16,8 +16,6 @@ use crate::{
     utils::container_styles::{OutlinedContainerStyle, RoundedBoxContainerStyle},
 };
 
-const MAX_RECIPIENT_NUMBER: usize = 4;
-
 fn domain_allowed(domain: &str, config: &Config) -> bool {
     for whitelisted_domain in &config.email_whitelisted_domains {
         if whitelisted_domain == domain || whitelisted_domain == "*" {
@@ -101,7 +99,7 @@ impl super::Screenish for EmailScreen {
             match message {
                 EmailScreenMessage::Tick => iced::Command::none(),
                 EmailScreenMessage::CurrentEmailAddressChanged(new_address) => {
-                    if self.email_addresses.len() < MAX_RECIPIENT_NUMBER {
+                    if self.email_addresses.len() < self.config.email_max_recipients as usize {
                         self.current_email_address_validity =
                             match EmailAddress::from_str(&new_address) {
                                 Ok(parsed) => {
@@ -202,7 +200,7 @@ impl super::Screenish for EmailScreen {
                                     Row::new()
                                         .push(
                                             TextInput::new(
-                                                &if self.email_addresses.len() < MAX_RECIPIENT_NUMBER {
+                                                &if self.email_addresses.len() < self.config.email_max_recipients as usize {
                                                     format!("my_email@{}", &self.config.email_example_domain)
                                                 } else {
                                                     "Maximum number of recipients reached".into()
@@ -247,7 +245,7 @@ impl super::Screenish for EmailScreen {
                                 )
                                 .push(
                                     text(
-                                        if self.email_addresses.len() >= MAX_RECIPIENT_NUMBER {
+                                        if self.email_addresses.len() >= self.config.email_max_recipients as usize {
                                             "You have reached the maximum number of recipients. Press [Enter] to have the photo emailed to the above accounts."
                                         } else if self.current_email_address.len() > 0 && matches!(self.current_email_address_validity, EmailAddressValidity::Invalid) {
                                             "Please enter a valid email address."
