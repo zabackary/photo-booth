@@ -1,13 +1,14 @@
+mod camera_feed;
 mod element_strip_renderer;
 
 use std::time::Duration;
 
 use crate::{
-    camera_feed::{CameraFeed, CameraMessage},
     config::Config,
     utils::{circle::circle, template_image::TEMPLATE_IMAGE},
 };
 use anim::{Animation, Timeline};
+use camera_feed::{CameraFeed, CameraMessage};
 use iced::{
     theme,
     widget::{container, image::Handle, space, text, Column, Row},
