@@ -185,7 +185,16 @@ impl super::Screenish for CameraScreen {
             RequestedFormat::new::<RgbAFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
         let mut camera = Camera::new(flags.index.clone(), requested).unwrap();
         camera.open_stream().unwrap();
-        let (feed, feed_command) = CameraFeed::new(camera, 48.into());
+        let mut aspect_ratio =
+            Some(flags.config.template.frames[0].width / flags.config.template.frames[0].height);
+        for frame in flags.config.template.frames.iter().skip(1) {
+            if Some(frame.width / frame.height) != aspect_ratio {
+                aspect_ratio = None;
+                break;
+            }
+        }
+        let (feed, feed_command) =
+            CameraFeed::new(camera, 48.into(), flags.config.mirror_preview, aspect_ratio);
         (
             CameraScreen {
                 feed,
@@ -244,14 +253,23 @@ impl super::Screenish for CameraScreen {
                                         self.snap_timeline.begin();
 
                                         // capture the frame
-                                        // everything important inside feed is Mutex'd
+                                        // everything important inside feed is Arc'd
                                         // so perf is fine
                                         let mut feed = self.feed.clone();
+                                        let mirror_output = self.config.mirror_output;
                                         return iced::Command::perform(
                                             async move {
-                                                tokio::task::spawn_blocking(move || feed.frame())
-                                                    .await
-                                                    .unwrap()
+                                                tokio::task::spawn_blocking(move || {
+                                                    let mut framed = feed.frame();
+                                                    if mirror_output {
+                                                        image::imageops::flip_horizontal_in_place(
+                                                            &mut framed,
+                                                        )
+                                                    }
+                                                    framed
+                                                })
+                                                .await
+                                                .unwrap()
                                             },
                                             CameraScreenMessage::ImageCaptured,
                                         )

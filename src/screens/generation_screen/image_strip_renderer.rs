@@ -1,4 +1,4 @@
-use image::{imageops, GenericImageView};
+use image::imageops;
 
 use crate::config::Template;
 
@@ -19,26 +19,26 @@ pub(super) fn image_strip_renderer<'a>(
         // crop the frame to the template
         let template_aspect_ratio = template_frame.width / template_frame.height;
         let frame_aspect_ratio = frame.width() as f32 / frame.height() as f32;
-        let cropped_frame = if template_aspect_ratio < frame_aspect_ratio {
+        let mut frame = if template_aspect_ratio < frame_aspect_ratio {
             // trim off left and right
             let new_height = frame.height();
             let new_width = (frame.height() as f32 * template_aspect_ratio) as u32;
             let left_offset = (frame.width() - new_width) / 2;
-            imageops::crop_imm(frame, left_offset, 0, new_width, new_height)
+            imageops::crop_imm(frame, left_offset, 0, new_width, new_height).to_image()
         } else if template_aspect_ratio > frame_aspect_ratio {
             // trim off top and bottom
             let new_width = frame.width();
             let new_height = (frame.width() as f32 / template_aspect_ratio) as u32;
             let top_offset = (frame.height() - new_height) / 2;
-            imageops::crop_imm(frame, 0, top_offset, new_width, new_height)
+            imageops::crop_imm(frame, 0, top_offset, new_width, new_height).to_image()
         } else {
             // perfect aspect ratio!
-            frame.view(0, 0, frame.width(), frame.height())
+            frame.clone()
         };
 
         // resize the frame
-        let resized_frame = imageops::resize(
-            &cropped_frame.to_image(),
+        frame = imageops::resize(
+            &frame,
             template_frame.width as u32,
             template_frame.height as u32,
             imageops::FilterType::Lanczos3,
@@ -46,7 +46,7 @@ pub(super) fn image_strip_renderer<'a>(
 
         imageops::overlay(
             &mut background,
-            &resized_frame,
+            &frame,
             template_frame.x as i64,
             template_frame.y as i64,
         )

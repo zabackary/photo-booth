@@ -46,7 +46,9 @@ pub(crate) struct Config {
     #[serde(rename = "emailServerEndpoint")]
     pub email_server_endpoint: String,
     #[serde(rename = "mirrorPreview")]
-    pub mirror_preview: String,
+    pub mirror_preview: bool,
+    #[serde(rename = "mirrorOutput")]
+    pub mirror_output: bool,
 }
 
 impl Config {
