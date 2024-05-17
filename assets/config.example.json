@@ -6,6 +6,7 @@
   "emailBlacklistedDomains": [],
   "emailValidationFailedHelp": "This event is restricting email addresses to a limited number of domains. Check the part after the @ symbol.",
   "emailServerEndpoint": "https://example.com/email_server_endpoint_post",
+  "mirrorPreview": true,
   "template": {
     "width": 400,
     "height": 1200,
